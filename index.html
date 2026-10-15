@@ -323,8 +323,10 @@
     function render() {
       const root = $('root');
       if (!state.session) {
-        root.innerHTML = '<div class="topbar"><div class="brand">Rent<span>Ok</span></div><p class="muted">Sales Hub</p></div><p class="muted">Sign in with your phone number. In Chrome, use the menu and choose Install app. On iPhone, tap Share, then Add to Home Screen.</p><section class="card"><h1>Sign in</h1><label>Phone<input id="phone" inputmode="numeric" maxlength="10" placeholder="10-digit mobile"></label><label id="otp-wrap" class="hide">OTP<input id="otp" inputmode="numeric" maxlength="6" placeholder="OTP"></label>' + (state.error ? '<div class="err">' + esc(state.error) + '</div>' : '') + '<div class="actions"><button class="btn primary" id="send">' + (state.otpSent ? 'Sign in' : 'Send OTP') + '</button>' + (state.otpSent ? '<button class="btn ghost" id="resend">Resend</button>' : '') + '</div></section>';
+        root.innerHTML = '<div class="topbar"><div class="brand">Rent<span>Ok</span></div><p class="muted">Sales Hub</p></div><p class="muted">Sign in with your phone number. In Chrome, use the menu and choose Install app. On iPhone, tap Share, then Add to Home Screen.</p><section class="card"><h1>Sign in</h1><label>Phone<input id="phone" inputmode="numeric" maxlength="10" placeholder="10-digit mobile" autocomplete="tel"></label><label id="otp-wrap"' + (state.otpSent ? '' : ' class="hide"') + '>OTP<input id="otp" inputmode="numeric" maxlength="6" placeholder="6-digit OTP" autocomplete="one-time-code"></label>' + (state.otpSent ? '<p class="muted">Enter the OTP sent to ' + esc(state.phone) + '.</p>' : '') + (state.error ? '<div class="err">' + esc(state.error) + '</div>' : '') + '<div class="actions"><button class="btn primary" id="send">' + (state.otpSent ? 'Sign in' : 'Send OTP') + '</button>' + (state.otpSent ? '<button class="btn ghost" id="resend">Resend</button>' : '') + '</div></section>';
         const phone = $('phone'); if (state.phone) phone.value = state.phone;
+        const otpInput = $('otp'); if (otpInput && state.otp) otpInput.value = state.otp;
+        if (state.otpSent && otpInput) otpInput.focus();
         $('send').onclick = async () => {
           state.phone = phone.value.replace(/\D/g, '').slice(0, 10); state.error = '';
           if (!/^\d{10}$/.test(state.phone)) { state.error = 'Enter a 10-digit phone number.'; render(); return; }
@@ -335,9 +337,9 @@
               render();
               return;
             }
-            const otp = $('otp').value.trim();
-            if (!otp) { state.error = 'Enter the OTP.'; render(); return; }
-            const result = await api('property/verifyLoginOtp', { json: { phone: state.phone, otp } });
+            state.otp = ($('otp') ? $('otp').value : '').replace(/\D/g, '').slice(0, 6);
+            if (!state.otp) { state.error = 'Enter the OTP.'; render(); return; }
+            const result = await api('property/verifyLoginOtp', { json: { phone: state.phone, otp: state.otp } });
             const token = findToken(result);
             if (!token) throw new Error('Login succeeded but no token was returned.');
             const payload = jwtPayload(token);
