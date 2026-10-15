@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0038FF" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Sales Hub" />
+  <meta name="description" content="Sales Hub for managing tenants and dues" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Sales Hub</title>
+  <style>
+    :root { --bg:#f3f6fb; --card:#fff; --line:#e3e8ef; --text:#2e3337; --muted:#667085; --blue:#0038ff; --cyan:#00fff0; --red:#e11d48; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:16px/1.4 Inter, system-ui, sans-serif; color:var(--text); background:var(--bg); }
+    button, input, select { font:inherit; }
+    button { cursor:pointer; }
+    a { color:var(--blue); }
+    .app { width:min(480px,100%); margin:0 auto; min-height:100dvh; padding:16px 14px calc(76px + env(safe-area-inset-bottom)); }
+    .brand { font-weight:800; letter-spacing:-.04em; font-size:1.3rem; }
+    .brand span { color:var(--cyan); }
+    .topbar { position:sticky; top:0; z-index:4; background:var(--blue); color:#fff; margin:-16px -14px 14px; padding:18px 14px 16px; border-radius:0 0 20px 20px; }
+    .switch { position:relative; margin-bottom:12px; }
+    .switch-btn { width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; background:rgba(255,255,255,.16); color:#fff; border:0; border-radius:12px; padding:12px 14px; font-weight:800; font-size:1.05rem; text-align:left; }
+    .switch-menu { margin-top:8px; background:#fff; color:var(--text); border-radius:14px; max-height:50dvh; overflow:auto; }
+    .switch-menu button { display:block; width:100%; text-align:left; background:#fff; color:var(--text); border:0; border-bottom:1px solid var(--line); border-radius:0; padding:12px 14px; font-weight:700; }
+    .switch-menu button.on { color:var(--blue); background:#eef3ff; }
+    .topbar .brand, .topbar .muted { color:#fff; }
+    .topbar .brand span { color:var(--cyan); }
+    .topbar .ghost { background:rgba(255,255,255,.16); color:#fff; border:0; }
+    .muted { color:var(--muted); font-size:.82rem; }
+    .row { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+    .card, .item, .preview { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; }
+    .card { margin-top:12px; }
+    h1, h2 { font-size:1.05rem; margin:0 0 6px; }
+    label { display:grid; gap:4px; font-size:.75rem; color:var(--muted); font-weight:600; }
+    input, select { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--text); }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+    .btn { border:0; border-radius:10px; padding:10px 14px; font-weight:700; }
+    .primary { background:var(--blue); color:#fff; }
+    .ghost { background:#f7f9fc; color:var(--text); border:1px solid var(--line); }
+    .full { width:100%; }
+    .err { background:#fff1f2; color:var(--red); border-radius:10px; padding:8px 10px; margin-top:8px; font-size:.85rem; }
+    .chips { display:flex; gap:6px; overflow:auto; margin:10px 0; }
+    .chip, .tab button { border:1px solid var(--line); background:#fff; border-radius:999px; padding:7px 10px; font-weight:700; font-size:.8rem; white-space:nowrap; }
+    .chip.on, .tab button.on { background:var(--blue); color:#fff; border-color:var(--blue); }
+    .topbar .chip { background:rgba(255,255,255,.16); color:#fff; border-color:transparent; }
+    .topbar .chip.on { background:#fff; color:var(--blue); }
+    .stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .stat { text-align:left; }
+    .stat strong { display:block; font-size:1.05rem; }
+    .list { display:grid; gap:8px; margin-top:8px; }
+    .item { width:100%; text-align:left; }
+    .meta { display:flex; flex-wrap:wrap; gap:6px 10px; color:var(--muted); font-size:.78rem; margin-top:4px; }
+    .tab { position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:min(480px,100%); display:grid; grid-template-columns:repeat(5,1fr); gap:4px; padding:6px 6px calc(6px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.96); border-top:1px solid var(--line); }
+    .tab button { border-radius:12px; padding:10px 2px; }
+    .sheet { position:fixed; inset:0; background:rgba(23,32,51,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
+    .sheet .panel { width:min(480px,100%); max-height:92dvh; overflow:auto; background:#fff; border-radius:18px 18px 0 0; padding:14px 14px calc(14px + env(safe-area-inset-bottom)); display:grid; gap:8px; }
+    .facts { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0; }
+    .facts dt { color:var(--muted); font-size:.75rem; }
+    .facts dd { margin:0; font-weight:700; }
+    .preview { background:#f7f9fc; display:grid; gap:3px; font-size:.84rem; }
+    .beds { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+    .bed { border-radius:999px; padding:2px 8px; font-size:.72rem; font-weight:700; background:#eef2f7; }
+    .hide { display:none; }
+  </style>
+</head>
+<body>
+  <div id="root" class="app"></div>
+  <script>
+    const API = 'https://apiv2.rentok.com';
+    const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+    const rupee = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+    const rupee2 = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const state = { session: null, tab: 'home', properties: [], selected: 'all', picker: false, stats: [], cards: [], rows: [], hasMore: false, query: '', movedOut: false, loading: false, error: '', sheet: null, dueTypes: [], quoteInputs: null, link: '', adding: false, beds: [], tenant: null };
+
+    function $(id) { return document.getElementById(id); }
+    function esc(value) { return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch])); }
+    function text(value) { return value == null ? '' : String(value).trim(); }
+    function num(value) { const n = Number(value); return Number.isFinite(n) ? n : 0; }
+    function money(value) { if (typeof value === 'string' && value.includes('₹')) return value; const n = Number(String(value ?? '').replace(/,/g, '')); return Number.isFinite(n) ? inr.format(n) : '—'; }
+    function digits(value) { return text(value).replace(/\D/g, '').slice(-10); }
+    function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+    function monthRange() {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth()+1, 0);
+      const iso = (d) => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      return { start: iso(start), end: iso(end), label: now.toLocaleDateString('en-IN', { month: 'long' }) };
+    }
+    function fingerprint() {
+      let id = localStorage.getItem('saleshub-fp');
+      if (!id) {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        id = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+        localStorage.setItem('saleshub-fp', id);
+      }
+      return id;
+    }
+    function loadSession() {
+      try { return JSON.parse(localStorage.getItem('saleshub-phone') || 'null'); } catch { return null; }
+    }
+    function saveSession(session) { localStorage.setItem('saleshub-phone', JSON.stringify(session)); state.session = session; }
+    function jwtPayload(token) {
+      try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch { return {}; }
+    }
+    function findToken(node) {
+      if (!node || typeof node !== 'object') return '';
+      if (typeof node.jwt_token === 'string') return node.jwt_token;
+      if (typeof node.token === 'string' && node.token.includes('.')) return node.token;
+      for (const value of Object.values(node)) { const found = findToken(value); if (found) return found; }
+      return '';
+    }
+    async function api(path, options = {}) {
+      const headers = { Accept: 'application/json, text/plain, */*', 'x-fingerprint': fingerprint(), 'x-platform-name': 'web' };
+      if (state.session?.token) headers.Authorization = 'Bearer ' + state.session.token;
+      let body;
+      if (options.form) body = options.form;
+      else if (options.json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(options.json); }
+      const res = await fetch(API + '/' + path, { method: body ? 'POST' : 'GET', headers, body });
+      const data = await res.json().catch(() => ({ status: res.status, message: 'Could not reach Sales Hub.' }));
+      const status = data.status ?? res.status;
+      if (status === 401 || status === 403) { signOut('Session expired. Sign in again.'); throw new Error('Session expired.'); }
+      if (status < 200 || status >= 300) throw new Error(data.message || 'Request failed');
+      return data;
+    }
+    function selectedNumbers() {
+      if (state.selected === 'all') return state.properties.map((p) => p.pgNumber);
+      const one = state.properties.find((p) => p.id === state.selected);
+      return one ? [one.pgNumber] : [];
+    }
+    function propertyId() {
+      return (state.properties.find((p) => p.id === state.selected) || state.properties[0] || {}).id || '';
+    }
+    function round2(value) { return Math.round(value * 100) / 100; }
+    function parseISO(iso) { const [y,m,d] = iso.split('-').map(Number); return new Date(y, (m||1)-1, d||1); }
+    function formatISO(date) { return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0'); }
+    function endForMonths(start, months) { const date = parseISO(start); const end = new Date(date.getFullYear(), date.getMonth()+months, date.getDate()); end.setDate(end.getDate()-1); return formatISO(end); }
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    function dmy(date) { return String(date.getDate()).padStart(2,'0') + '/' + String(date.getMonth()+1).padStart(2,'0') + '/' + date.getFullYear(); }
+    function mdy(date) { return String(date.getMonth()+1).padStart(2,'0') + '/' + String(date.getDate()).padStart(2,'0') + '/' + date.getFullYear(); }
+    function prettyDate(date) { return date.getDate() + ' ' + MONTHS[date.getMonth()] + ' ' + date.getFullYear(); }
+    function blankTenant() {
+      const propertyId = state.selected === 'all' ? ((state.properties[0] || {}).id || '') : state.selected;
+      return { propertyId, name: '', phone: '', bedId: '', rent: '0', deposit: '0', joining: today(), months: '11', notice: '30', lockin: '0', gst: false, whatsapp: true };
+    }
+    function tenantPayload(form, property, bed) {
+      const joining = parseISO(form.joining || today());
+      const months = Math.max(1, Math.round(num(form.months)) || 1);
+      const checkout = new Date(joining.getFullYear(), joining.getMonth() + months, joining.getDate());
+      const monthEnd = new Date(joining.getFullYear(), joining.getMonth() + 1, 0);
+      const duration = Math.round((monthEnd.getTime() - joining.getTime()) / 86400000) + 1;
+      const rent = Math.max(0, num(form.rent));
+      const firstRent = Math.round((rent * duration) / monthEnd.getDate());
+      const deposit = Math.max(0, Math.round(num(form.deposit)));
+      const dueDate = mdy(joining);
+      return {
+        tenant_name: text(form.name), tenant_phone: digits(form.phone), tenant_room: bed.roomName, unit_id_array: [bed.id],
+        rent_amount: String(Math.round(rent)), date_of_joining: dmy(joining), pg_number: property.pgNumber, pg_id: state.session.pgId || '',
+        booked_by: [], move_loss_to_dues: false, country_code: '91', billing_start_date: dmy(joining), checkout_date: dmy(checkout),
+        checkin_time: '', checkout_time: '', lockin_period: Math.max(0, Math.round(num(form.lockin)) || 0), notice_period: Math.max(0, Math.round(num(form.notice)) || 0),
+        agreement_period_with_unit: String(months), security_deposit: deposit, cashless_deposit: null, is_gst_enabled: !!form.gst,
+        rental_frequency: 2, rent_addition_date: 1, whatsapp_flag: form.whatsapp !== false,
+        opening_balance_array: [
+          { amount: firstRent, description: MONTHS[joining.getMonth()] + ' Rent', type: 302, dueDate, receivedAmount: 0, paymentModeSubType: 0, otherDescription: 'Due from ' + prettyDate(joining) + ' to ' + prettyDate(monthEnd) + ', Duration: ' + duration + ' Days' },
+          { amount: deposit, description: 'Security Deposit', type: 302, dueDate, receivedAmount: 0, paymentModeSubType: 0, otherDescription: 'Security Deposit', collectionDescription: null }
+        ]
+      };
+    }
+    async function loadBeds(property) {
+      const beds = [];
+      let offset = 0;
+      for (let page = 0; page < 15; page++) {
+        const result = await api('v1/rooms/list/filters?property_id=' + encodeURIComponent(property.id), { json: { limit: 40, offset, pg_number_filter: [property.pgNumber] } });
+        const rooms = ((result.data || {}).rooms) || [];
+        rooms.forEach((room) => {
+          const roomName = text(room.title || room.name || room.room_name) || 'Room';
+          const list = Array.isArray(room.bed_array) ? room.bed_array : [];
+          if (!list.length && room.id) beds.push({ id: room.id, roomName, label: roomName });
+          list.forEach((bed) => {
+            const id = text(bed.id || bed.unit_id);
+            if (!id) return;
+            const status = text(bed.status_text);
+            beds.push({ id, roomName, label: roomName + ' · ' + (text(bed.name) || 'Bed') + (status ? ' · ' + status : '') });
+          });
+        });
+        const more = result.pagination && result.pagination.has_more;
+        if (!more || !rooms.length) break;
+        offset += rooms.length;
+      }
+      state.beds = beds;
+      if (state.tenant && !beds.some((bed) => bed.id === state.tenant.bedId)) state.tenant.bedId = (beds[0] || {}).id || '';
+    }
+    function buildQuote(input) {
+      const listPrice = round2(input.unitPrice), units = input.units, months = input.months;
+      const discount = round2(Math.min(Math.max(input.discountPerUnit, 0), listPrice));
+      const gstRate = input.gstRate > 0 ? input.gstRate : 0.18;
+      const preciseBase = (listPrice - discount) / (1 + gstRate);
+      const unitCost = round2(preciseBase);
+      const quantity = units * months;
+      const originalAmount = Math.round(listPrice * quantity);
+      const baseTotal = unitCost * quantity;
+      const gstAmount = Math.round(baseTotal * gstRate);
+      const amount = Math.round(baseTotal + gstAmount);
+      const discountValue = discount > 0 ? round2((listPrice - preciseBase) * quantity) : 0;
+      const end = endForMonths(input.startDate, months);
+      const days = Math.round((parseISO(end) - parseISO(input.startDate)) / 86400000) + 1;
+      const pretty = (iso) => parseISO(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+      const monthLabel = months === 1 ? '1 Month' : months + ' Months';
+      const description = [
+        'Due from ' + pretty(input.startDate) + ' to ' + pretty(end) + ', Duration= ' + days + ' days',
+        'Units: ' + units + ' × ₹' + rupee2.format(listPrice) + ' × ' + monthLabel + ' = ₹' + rupee.format(originalAmount),
+        'Original Amount (before discount): ₹' + rupee.format(originalAmount),
+        'Discount: ₹' + rupee.format(Math.round(discountValue)),
+        'Final Amount (inclusive of GST): ₹' + rupee.format(amount),
+        'GST (' + Math.round(gstRate * 100) + '%): ₹' + rupee.format(gstAmount),
+      ].join('\n');
+      return { amount, dueDate: input.startDate, invoiceDate: input.startDate, description, dueType: input.dueType, dueStartDate: input.startDate, dueEndDate: end, totalUnits: units, unitCost, originalUnitCost: listPrice, originalAmount, gstPercentage: gstRate, gstAmount, discountValue, days, months, discountPerUnit: discount, baseDeduction: round2(listPrice - preciseBase) };
+    }
+
+    function signOut(message) {
+      localStorage.removeItem('saleshub-phone');
+      state.session = null; state.error = message || ''; state.sheet = null; render();
+    }
+
+    async function boot() {
+      state.loading = true; state.error = ''; render();
+      try {
+        const pgId = state.session.pgId;
+        const props = await api('property/fetchAllPropertiesForWeb', { json: { pg_id: pgId } });
+        state.properties = ((props.data || {}).properties || []).map((item) => ({ id: item.id, pgNumber: num(item.pg_number), name: item.pg_name || 'Property' })).filter((item) => item.id && item.pgNumber);
+        await loadTab(true);
+      } catch (e) { state.error = e.message; }
+      state.loading = false; render();
+    }
+    async function loadTab(replace) {
+      const numbers = selectedNumbers();
+      const id = propertyId();
+      if (!numbers.length) return;
+      if (state.tab === 'home') {
+        const filter = numbers.join(',');
+        const [home, dash] = await Promise.all([
+          api('v1/home?pg_number_filter=' + encodeURIComponent(filter) + '&page=1&limit=4'),
+          api('property/getHomeDashboard', { json: { pg_id: state.session.pgId } }),
+        ]);
+        const blocks = ((home.data || {}).blocks || []);
+        const header = blocks.find((block) => block.type === 'header_stats');
+        state.stats = ((header && header.block_data && header.block_data.stats) || []).map((stat) => ({ title: stat.title, value: stat.value, action: (stat.cta || {}).action || '' }));
+        state.cards = (((dash.data || {}).properties) || []).filter((item) => numbers.includes(num(item.pg_number))).map((item) => ({ name: item.pg_name, tenants: num(item.tenant_count), rooms: num(item.room_count), vacant: num(item.vacant_beds), dues: num(item.total_dues), month: num(item.total_income_this_month) }));
+        return;
+      }
+      const offset = replace ? 0 : state.rows.length;
+      let page;
+      if (state.tab === 'people') page = await api((state.movedOut ? 'v1/old-tenants/list/filters' : 'v1/tenants/list/filters') + '?property_id=' + id, { json: { limit: 20, offset, filter_codes: [], order_by: { key: 'room', is_asc: true }, pg_number_filter: numbers } });
+      else if (state.tab === 'rooms') page = await api('v1/rooms/list/filters?property_id=' + id, { json: { limit: 40, offset, pg_number_filter: numbers } });
+      else if (state.tab === 'dues') page = await api('v1/dues/list/filters?property_id=' + id, { json: { limit: 20, offset, filter_codes: [], due_types: [], added_by: [], start_date: '', end_date: '', tenant_types: [], pg_number_filter: numbers } });
+      else { const range = monthRange(); page = await api('v1/collections/list/filters?property_id=' + id, { json: { limit: 20, offset, pg_number_filter: numbers, filter_codes: [], payment_mode: [], due_types: [], received_by: [], start_date: range.start, end_date: range.end, collection_due_start_date: '', collection_due_end_date: '', tenant_types: [] } }); }
+      const key = state.tab === 'rooms' ? 'rooms' : state.tab === 'dues' ? 'dues' : state.tab === 'paid' ? 'payments' : 'tenants';
+      const items = ((page.data || {})[key]) || [];
+      state.rows = replace ? items : state.rows.concat(items);
+      state.hasMore = page.pagination ? !!page.pagination.has_more : items.length >= (state.tab === 'rooms' ? 40 : 20);
+    }
+    async function openTenant(row) {
+      state.sheet = row; state.link = ''; state.dueTypes = []; state.quoteInputs = { price: '', units: '1', months: '1', discount: '0', start: today(), typeId: '' }; render();
+      try {
+        const pgId = text(row.pg_id) || state.session.pgId;
+        const pgNumber = num(row.pg_number);
+        const tenantId = text(row.id || row.tenant_uuid);
+        const data = await api('dueType/fetchTenantDueTypes', { json: { pg_id: pgId, pg_number: pgNumber, tenant_id: tenantId } });
+        state.dueTypes = ((data.data || {}).bill_array || []).filter((item) => item.enabled !== false).map((item) => ({ id: item.firebase_id || item.name, name: item.name, unitCost: num(item.unit_cost || item.amount), gstRate: num(item.gst_percentage) || 0.18 }));
+        const gold = state.dueTypes.find((type) => type.name === 'Gold Plan') || state.dueTypes[0];
+        if (gold) { state.quoteInputs.typeId = gold.id; state.quoteInputs.price = gold.unitCost ? String(gold.unitCost) : ''; }
+        render();
+      } catch (e) { state.error = e.message; render(); }
+    }
+    function currentQuote() {
+      const input = state.quoteInputs; if (!input) return null;
+      const type = state.dueTypes.find((item) => item.id === input.typeId);
+      const price = num(input.price), units = Math.round(num(input.units)), months = Math.round(num(input.months));
+      if (!type || price <= 0 || units < 1 || months < 1) return null;
+      return buildQuote({ dueType: type.name, unitPrice: price, units, months, discountPerUnit: num(input.discount), gstRate: type.gstRate, startDate: input.start });
+    }
+    async function addDue() {
+      const quote = currentQuote(); const row = state.sheet; if (!quote || !row) return;
+      state.loading = true; state.error = ''; render();
+      try {
+        const pgId = text(row.pg_id) || state.session.pgId;
+        const pgNumber = num(row.pg_number);
+        const tenantId = text(row.id || row.tenant_uuid);
+        const form = new FormData();
+        form.append('pg_id', pgId); form.append('pg_number', String(pgNumber)); form.append('tenant_ids', tenantId); form.append('added_by', '2');
+        form.append('invoices', JSON.stringify({ amount: quote.amount, due_date: quote.dueDate, invoice_date: quote.invoiceDate, description: quote.description, due_type: quote.dueType, due_start_date: quote.dueStartDate, due_end_date: quote.dueEndDate, total_units: quote.totalUnits, unit_cost: quote.unitCost, original_unit_cost: quote.originalUnitCost, original_amount: quote.originalAmount, gst_percentage: quote.gstPercentage, gst_amount: quote.gstAmount, discount_value: quote.discountValue, discount_breakup: quote.discountPerUnit > 0 ? [{ type: 'per-unit', input_value: quote.discountPerUnit, calculated_amount: quote.discountValue, description: '₹' + rupee.format(quote.discountPerUnit) + '/unit GST-incl. discount (net base deduction: ₹' + rupee2.format(quote.baseDeduction) + '/unit)' }] : [] }));
+        await api('invoices/addInvoices', { form });
+        const link = await api('payment/generatePaymentPageLink', { json: { tenant_id: tenantId, pg_id: pgId, pg_number: pgNumber, amount: quote.amount } });
+        state.link = (link.data || {}).url || '';
+        state.shareText = (link.data || {}).whatsapp_text || '';
+        if (!state.link) throw new Error('The due was added, but no payment link came back.');
+      } catch (e) { state.error = e.message; }
+      state.loading = false; render();
+    }
+
+    function visibleRows() {
+      const q = state.query.trim().toLowerCase();
+      if (!q) return state.rows;
+      return state.rows.filter((row) => [row.name, row.phone, row.room, row.pg_name, row.title, row.tenant_name, row.tenant_room, row.tenant_number, row.received_by].some((part) => text(part).toLowerCase().includes(q)));
+    }
+    function itemHtml(row, index) {
+      if (state.tab === 'people' || state.tab === 'dues') {
+        const name = text(row.name || row.tenant_name) || 'Tenant';
+        const amount = state.tab === 'dues' ? row.total_amount : row.total_dues;
+        return '<button class="item" data-open="' + index + '"><div class="row"><strong>' + esc(name) + '</strong><span>' + esc(money(amount)) + '</span></div><div class="meta"><span>' + esc(text(row.room || row.tenant_room) || 'No room') + '</span><span>' + esc(row.pg_name) + '</span></div></button>';
+      }
+      if (state.tab === 'rooms') {
+        const beds = (row.bed_array || []).map((bed) => '<span class="bed">' + esc(bed.name) + ' · ' + esc(bed.status_text || 'Bed') + '</span>').join('');
+        return '<article class="item"><div class="row"><strong>' + esc(row.title || 'Room') + '</strong><span class="muted">' + esc(row.pg_name) + '</span></div><div class="meta"><span>Dues ' + esc(money(row.unpaid_dues_amount)) + '</span></div><div class="beds">' + beds + '</div></article>';
+      }
+      return '<article class="item"><div class="row"><strong>' + esc(row.tenant_name || 'Payment') + '</strong><span>' + esc(money(row.total_amount)) + '</span></div><div class="meta"><span>' + esc(row.tenant_room || 'No room') + '</span><span>' + esc(text(row.received_on).slice(0, 10)) + '</span></div></article>';
+    }
+    function render() {
+      const root = $('root');
+      if (!state.session) {
+        root.innerHTML = '<div class="topbar"><div class="brand">Rent<span>Ok</span></div><p class="muted">Sales Hub</p></div><p class="muted">Sign in with your phone number. In Chrome, use the menu and choose Install app. On iPhone, tap Share, then Add to Home Screen.</p><section class="card"><h1>Sign in</h1><label>Phone<input id="phone" inputmode="numeric" maxlength="10" placeholder="10-digit mobile"></label><label id="otp-wrap" class="hide">OTP<input id="otp" inputmode="numeric" maxlength="6" placeholder="OTP"></label>' + (state.error ? '<div class="err">' + esc(state.error) + '</div>' : '') + '<div class="actions"><button class="btn primary" id="send">' + (state.otpSent ? 'Sign in' : 'Send OTP') + '</button>' + (state.otpSent ? '<button class="btn ghost" id="resend">Resend</button>' : '') + '</div></section>';
+        const phone = $('phone'); if (state.phone) phone.value = state.phone;
+        $('send').onclick = async () => {
+          state.phone = phone.value.replace(/\D/g, '').slice(0, 10); state.error = '';
+          if (!/^\d{10}$/.test(state.phone)) { state.error = 'Enter a 10-digit phone number.'; render(); return; }
+          try {
+            if (!state.otpSent) {
+              await api('property/sendLoginOtp', { json: { phone: state.phone } });
+              state.otpSent = true;
+              render();
+              return;
+            }
+            const otp = $('otp').value.trim();
+            if (!otp) { state.error = 'Enter the OTP.'; render(); return; }
+            const result = await api('property/verifyLoginOtp', { json: { phone: state.phone, otp } });
+            const token = findToken(result);
+            if (!token) throw new Error('Login succeeded but no token was returned.');
+            const payload = jwtPayload(token);
+            saveSession({ token, phone: state.phone, pgId: payload.pg_id || '', partnerName: payload.partnerName || '' });
+            boot();
+          } catch (e) { state.error = e.message; render(); }
+        };
+        const resend = $('resend');
+        if (resend) resend.onclick = async () => { state.error = ''; try { await api('property/sendLoginOtp', { json: { phone: state.phone } }); } catch (e) { state.error = e.message; render(); } };
+        return;
+      }
+      const currentName = state.selected === 'all' ? 'All properties' : ((state.properties.find((p) => p.id === state.selected) || {}).name || 'Property');
+      const options = '<button type="button" data-pg="all"' + (state.selected === 'all' ? ' class="on"' : '') + '>All properties</button>' + state.properties.map((p) => '<button type="button" data-pg="' + esc(p.id) + '"' + (state.selected === p.id ? ' class="on"' : '') + '>' + esc(p.name) + '</button>').join('');
+      const switcher = '<div class="switch"><button type="button" class="switch-btn" id="switch"><span>' + esc(currentName) + '</span><span>' + (state.picker ? '▴' : '▾') + '</span></button>' + (state.picker ? '<div class="switch-menu">' + options + '</div>' : '') + '</div>';
+      let main = '';
+      if (state.tab === 'home') {
+        main = '<div class="stats">' + state.stats.map((stat) => '<button class="item stat" data-go="' + esc(stat.action) + '"><span class="muted">' + esc(stat.title) + '</span><strong>' + esc(stat.value) + '</strong></button>').join('') + '</div><h2 style="margin-top:14px">Properties</h2><div class="list">' + state.cards.map((card) => '<article class="item"><strong>' + esc(card.name) + '</strong><div class="meta"><span>' + card.tenants + ' tenants</span><span>' + card.vacant + ' vacant</span><span>Dues ' + esc(money(card.dues)) + '</span><span>Month ' + esc(money(card.month)) + '</span></div></article>').join('') + '</div>';
+      } else {
+        const rows = visibleRows();
+        main = '<input id="q" placeholder="Search" value="' + esc(state.query) + '">' + (state.tab === 'people' ? '<div class="actions"><button class="btn ' + (!state.movedOut ? 'primary' : 'ghost') + '" id="living">Living</button><button class="btn ' + (state.movedOut ? 'primary' : 'ghost') + '" id="old">Moved out</button>' + (!state.movedOut ? '<button class="btn primary" id="add-tenant">Add tenant</button>' : '') + '</div>' : '') + (state.tab === 'paid' ? '<p class="muted">' + esc(monthRange().label) + ' collections</p>' : '') + '<div class="list">' + rows.map(itemHtml).join('') + '</div>' + (state.hasMore ? '<button class="btn ghost full" id="more" style="margin-top:8px">Load more</button>' : '');
+      }
+      root.innerHTML = '<div class="topbar">' + switcher + '<div class="row"><div><div class="brand">Rent<span>Ok</span></div><div class="muted">' + esc(state.session.partnerName || 'Sales Hub') + '</div></div><button class="btn ghost" id="out">Sign out</button></div></div>' + (state.error ? '<div class="err">' + esc(state.error) + '</div>' : '') + (state.loading ? '<p class="muted">Loading…</p>' : '') + main + '<nav class="tab">' + ['home:Home','people:People','rooms:Rooms','dues:Dues','paid:Paid'].map((pair) => { const [id, label] = pair.split(':'); return '<button class="' + (state.tab === id ? 'on' : '') + '" data-tab="' + id + '">' + label + '</button>'; }).join('') + '</nav>' + sheetHtml() + addSheetHtml();
+      $('out').onclick = () => signOut();
+      $('switch').onclick = () => { state.picker = !state.picker; render(); };
+      root.querySelectorAll('[data-pg]').forEach((button) => button.onclick = async () => { state.selected = button.dataset.pg; state.picker = false; state.rows = []; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); });
+      root.querySelectorAll('[data-tab]').forEach((button) => button.onclick = async () => { state.tab = button.dataset.tab; state.rows = []; state.query = ''; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); });
+      root.querySelectorAll('[data-go]').forEach((button) => button.onclick = () => { const action = button.dataset.go; state.tab = action.includes('collection') ? 'paid' : action.includes('dues') ? 'dues' : action.includes('rooms') ? 'rooms' : 'people'; state.rows = []; render(); loadTab(true).then(render).catch((e) => { state.error = e.message; render(); }); });
+      root.querySelectorAll('[data-open]').forEach((button) => button.onclick = () => openTenant(visibleRows()[Number(button.dataset.open)]));
+      const q = $('q'); if (q) q.oninput = () => { state.query = q.value; const list = root.querySelector('.list'); if (list) list.innerHTML = visibleRows().map(itemHtml).join(''); root.querySelectorAll('[data-open]').forEach((button) => button.onclick = () => openTenant(visibleRows()[Number(button.dataset.open)])); };
+      const living = $('living'); if (living) living.onclick = async () => { state.movedOut = false; state.rows = []; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); };
+      const old = $('old'); if (old) old.onclick = async () => { state.movedOut = true; state.rows = []; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); };
+      const more = $('more'); if (more) more.onclick = async () => { try { await loadTab(false); render(); } catch (e) { state.error = e.message; render(); } };
+      const addBtn = $('add-tenant'); if (addBtn) addBtn.onclick = () => { state.sheet = null; state.adding = true; state.tenantError = ''; state.tenant = blankTenant(); state.beds = []; render(); const property = state.properties.find((item) => item.id === state.tenant.propertyId); if (property) loadBeds(property).then(() => render()).catch((e) => { state.tenantError = e.message; render(); }); };
+      bindSheet();
+      bindAdd();
+    }
+    function sheetHtml() {
+      const row = state.sheet; if (!row) return '';
+      const phone = digits(row.phone || row.tenant_number);
+      const quote = currentQuote();
+      const types = state.dueTypes.map((type) => '<option value="' + esc(type.id) + '"' + (state.quoteInputs && state.quoteInputs.typeId === type.id ? ' selected' : '') + '>' + esc(type.name) + (type.unitCost ? ' · ₹' + type.unitCost : '') + '</option>').join('');
+      const input = state.quoteInputs || {};
+      const link = state.link ? '<div class="preview"><a href="' + esc(state.link) + '" target="_blank">' + esc(state.link) + '</a><div class="actions"><button class="btn ghost" id="copy">Copy link</button>' + (state.shareText ? '<a class="btn primary" target="_blank" href="https://wa.me/' + (phone ? '91' + phone : '') + '?text=' + encodeURIComponent(state.shareText) + '">WhatsApp link</a>' : '') + '</div></div>' : '';
+      return '<div class="sheet" id="sheet"><div class="panel"><div class="row"><strong>' + esc(row.name || row.tenant_name || 'Tenant') + '</strong><button class="btn ghost" id="close">Close</button></div><p class="muted">' + esc(text(row.room || row.tenant_room) || 'No room') + ' · ' + esc(row.pg_name) + '</p><div class="actions">' + (phone ? '<a class="btn primary" href="tel:' + phone + '">Call</a><a class="btn ghost" target="_blank" href="https://wa.me/91' + phone + '">WhatsApp</a>' : '') + '</div><h2>Add due</h2><label>Plan<select id="plan">' + types + '</select></label><div class="grid"><label>Unit price<input id="price" inputmode="decimal" value="' + esc(input.price || '') + '"></label><label>Units<input id="units" inputmode="numeric" value="' + esc(input.units || '1') + '"></label><label>Months<input id="months" inputmode="numeric" value="' + esc(input.months || '1') + '"></label><label>Discount / unit<input id="discount" inputmode="decimal" value="' + esc(input.discount || '0') + '"></label></div><label>Starts<input id="start" type="date" value="' + esc(input.start || today()) + '"></label>' + (quote ? '<div class="preview"><div>' + quote.totalUnits + ' × ₹' + quote.originalUnitCost + ' × ' + quote.months + ' months</div><div>Through ' + quote.dueEndDate + ' · ' + quote.days + ' days</div><div>Before discount ' + inr.format(quote.originalAmount) + '</div><div>Discount ' + inr.format(Math.round(quote.discountValue)) + ' · GST ' + inr.format(quote.gstAmount) + '</div><strong>' + inr.format(quote.amount) + ' to collect</strong></div>' : '<p class="muted">Enter a price, units, and months.</p>') + (state.error ? '<div class="err">' + esc(state.error) + '</div>' : '') + '<button class="btn primary full" id="adddue">' + (state.loading ? 'Adding…' : 'Add due and payment link') + '</button>' + link + '</div></div>';
+    }
+    function readQuoteInputs() {
+      if (!state.quoteInputs) state.quoteInputs = {};
+      const plan = $('plan'), price = $('price'), units = $('units'), months = $('months'), discount = $('discount'), start = $('start');
+      if (plan) state.quoteInputs.typeId = plan.value;
+      if (price) state.quoteInputs.price = price.value;
+      if (units) state.quoteInputs.units = units.value;
+      if (months) state.quoteInputs.months = months.value;
+      if (discount) state.quoteInputs.discount = discount.value;
+      if (start) state.quoteInputs.start = start.value;
+    }
+    function bindSheet() {
+      const close = $('close'); if (close) close.onclick = () => { state.sheet = null; state.error = ''; render(); };
+      const sheet = $('sheet'); if (sheet) sheet.onclick = (event) => { if (event.target === sheet) { state.sheet = null; render(); } };
+      const plan = $('plan'); if (plan) plan.onchange = () => { readQuoteInputs(); const type = state.dueTypes.find((item) => item.id === plan.value); if (type && type.unitCost) state.quoteInputs.price = String(type.unitCost); state.link = ''; render(); };
+      ['price','units','months','discount','start'].forEach((id) => { const el = $(id); if (el) el.oninput = () => { readQuoteInputs(); state.link = ''; const panel = document.querySelector('.panel'); const top = panel ? panel.scrollTop : 0; render(); const next = document.querySelector('.panel'); if (next) next.scrollTop = top; const focus = $(id); if (focus) focus.focus(); }; });
+      const add = $('adddue'); if (add) add.onclick = () => { readQuoteInputs(); addDue(); };
+      const copy = $('copy'); if (copy) copy.onclick = () => navigator.clipboard.writeText(state.link).then(() => { copy.textContent = 'Copied'; });
+    }
+    function addSheetHtml() {
+      if (!state.adding || !state.tenant) return '';
+      const form = state.tenant;
+      const property = state.properties.find((item) => item.id === form.propertyId) || null;
+      const bed = state.beds.find((item) => item.id === form.bedId) || null;
+      const payload = property && bed ? tenantPayload(form, property, bed) : null;
+      const first = payload ? payload.opening_balance_array[0] : null;
+      const depositDue = payload ? payload.opening_balance_array[1] : null;
+      const propertyOptions = state.properties.map((item) => '<option value="' + esc(item.id) + '"' + (form.propertyId === item.id ? ' selected' : '') + '>' + esc(item.name) + '</option>').join('');
+      const bedOptions = state.beds.map((item) => '<option value="' + esc(item.id) + '"' + (form.bedId === item.id ? ' selected' : '') + '>' + esc(item.label) + '</option>').join('');
+      const preview = payload ? '<div class="preview"><div>Checkout ' + esc(payload.checkout_date) + '</div><div>' + esc(first.description) + ' ' + inr.format(first.amount) + '</div><div class="muted">' + esc(first.otherDescription) + '</div><div>Security deposit ' + inr.format(depositDue.amount) + '</div></div>' : '<p class="muted">' + (state.beds.length ? 'Choose a room.' : 'Loading rooms…') + '</p>';
+      return '<div class="sheet" id="add-sheet"><div class="panel"><div class="row"><h2>Add tenant</h2><button class="btn ghost" id="add-close" type="button">Close</button></div><label>Property<select id="t-property">' + propertyOptions + '</select></label><label>Name<input id="t-name" value="' + esc(form.name) + '" placeholder="Tenant name"></label><label>Phone<input id="t-phone" inputmode="numeric" maxlength="10" value="' + esc(form.phone) + '" placeholder="10-digit mobile"></label><label>Room<select id="t-bed">' + (bedOptions || '<option value="">No rooms</option>') + '</select></label><div class="grid"><label>Monthly rent<input id="t-rent" inputmode="decimal" value="' + esc(form.rent) + '"></label><label>Security deposit<input id="t-deposit" inputmode="decimal" value="' + esc(form.deposit) + '"></label><label>Joining<input id="t-join" type="date" value="' + esc(form.joining) + '"></label><label>Agreement months<input id="t-months" inputmode="numeric" value="' + esc(form.months) + '"></label><label>Notice days<input id="t-notice" inputmode="numeric" value="' + esc(form.notice) + '"></label><label>Lock-in months<input id="t-lockin" inputmode="numeric" value="' + esc(form.lockin) + '"></label></div><label><input id="t-gst" type="checkbox"' + (form.gst ? ' checked' : '') + '> GST on rent</label><label><input id="t-wa" type="checkbox"' + (form.whatsapp ? ' checked' : '') + '> WhatsApp updates</label>' + preview + (state.tenantError ? '<div class="err">' + esc(state.tenantError) + '</div>' : '') + '<button class="btn primary full" id="t-save" type="button">' + (state.savingTenant ? 'Adding…' : 'Add tenant') + '</button></div></div>';
+    }
+    function readTenant() {
+      if (!state.tenant) return;
+      [['t-name','name'],['t-phone','phone'],['t-rent','rent'],['t-deposit','deposit'],['t-join','joining'],['t-months','months'],['t-notice','notice'],['t-lockin','lockin'],['t-bed','bedId'],['t-property','propertyId']].forEach((pair) => { const el = $(pair[0]); if (el) state.tenant[pair[1]] = el.value; });
+      const gst = $('t-gst'); if (gst) state.tenant.gst = gst.checked;
+      const wa = $('t-wa'); if (wa) state.tenant.whatsapp = wa.checked;
+    }
+    function bindAdd() {
+      const close = $('add-close'); if (close) close.onclick = () => { state.adding = false; state.tenantError = ''; render(); };
+      const sheet = $('add-sheet'); if (sheet) sheet.onclick = (event) => { if (event.target === sheet) { state.adding = false; render(); } };
+      const property = $('t-property');
+      if (property) property.onchange = () => { readTenant(); state.beds = []; const next = state.properties.find((item) => item.id === state.tenant.propertyId); render(); if (next) loadBeds(next).then(() => render()).catch((e) => { state.tenantError = e.message; render(); }); };
+      ['t-name','t-phone','t-rent','t-deposit','t-join','t-months','t-notice','t-lockin','t-bed'].forEach((id) => {
+        const el = $(id);
+        if (!el) return;
+        const update = () => { readTenant(); const panel = document.querySelector('#add-sheet .panel'); const top = panel ? panel.scrollTop : 0; render(); const next = document.querySelector('#add-sheet .panel'); if (next) next.scrollTop = top; const focus = $(id); if (focus) focus.focus(); };
+        el.oninput = update;
+        el.onchange = update;
+      });
+      const gst = $('t-gst'); if (gst) gst.onchange = () => { readTenant(); render(); };
+      const wa = $('t-wa'); if (wa) wa.onchange = () => { readTenant(); render(); };
+      const save = $('t-save');
+      if (save) save.onclick = async () => {
+        readTenant();
+        const form = state.tenant;
+        const chosen = state.properties.find((item) => item.id === form.propertyId);
+        const bed = state.beds.find((item) => item.id === form.bedId);
+        if (!chosen || !bed) { state.tenantError = 'Choose a property and a room.'; render(); return; }
+        if (!text(form.name)) { state.tenantError = 'Enter the tenant name.'; render(); return; }
+        if (!/^\d{10}$/.test(digits(form.phone))) { state.tenantError = 'Enter a 10-digit phone number.'; render(); return; }
+        state.savingTenant = true; state.tenantError = ''; render();
+        try {
+          await api('tenant/addTenant', { json: tenantPayload(form, chosen, bed) });
+          state.adding = false; state.rows = []; state.loading = true;
+          await loadTab(true);
+        } catch (e) { state.tenantError = e.message; }
+        state.savingTenant = false; state.loading = false; render();
+      };
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    }
+    state.session = loadSession();
+    if (state.session && state.session.token && state.session.pgId) boot(); else render();
+  </script>
+</body>
+</html>
