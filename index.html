@@ -55,8 +55,10 @@
     .list { display:grid; gap:8px; margin-top:8px; }
     .item { width:100%; text-align:left; }
     .meta { display:flex; flex-wrap:wrap; gap:6px 10px; color:var(--muted); font-size:.78rem; margin-top:4px; }
-    .tab { position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:min(480px,100%); display:grid; grid-template-columns:repeat(5,1fr); gap:4px; padding:6px 6px calc(6px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.96); border-top:1px solid var(--line); }
-    .tab button { border-radius:12px; padding:10px 2px; }
+    .tab { position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:min(480px,100%); display:grid; grid-template-columns:repeat(6,1fr); gap:4px; padding:6px 6px calc(6px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.96); border-top:1px solid var(--line); }
+    .tab button { border-radius:12px; padding:10px 2px; font-size:.68rem; }
+    .meter { height:8px; border-radius:999px; background:#e6ebf5; overflow:hidden; margin-top:6px; }
+    .meter span { display:block; height:100%; background:var(--blue); }
     .sheet { position:fixed; inset:0; background:rgba(23,32,51,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
     .sheet .panel { width:min(480px,100%); max-height:92dvh; overflow:auto; background:#fff; border-radius:18px 18px 0 0; padding:14px 14px calc(14px + env(safe-area-inset-bottom)); display:grid; gap:8px; }
     .facts { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0; }
@@ -75,7 +77,17 @@
     const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
     const rupee = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
     const rupee2 = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const state = { session: null, tab: 'home', properties: [], selected: 'all', picker: false, stats: [], cards: [], rows: [], hasMore: false, query: '', movedOut: false, loading: false, error: '', sheet: null, dueTypes: [], quoteInputs: null, link: '', adding: false, beds: [], tenant: null };
+    const TARGETS = [
+      { name: 'Amit', target: 800000, eazypgId: '7891233020P' },
+      { name: 'Tejas', target: 100000, eazypgId: '7891233020AC' },
+      { name: 'Mohit', target: 100000, eazypgId: '7891233020AG' },
+      { name: 'Jatin Arora', target: 177000, eazypgId: '7891233020Z' },
+      { name: 'Kamalkant', target: 600000, eazypgId: '7891233020S' },
+      { name: 'Bharat', target: 500000, eazypgId: '7891233020Q' },
+      { name: 'Sandeep', target: 500000, eazypgId: '7891233020W' },
+      { name: 'Pankaj', target: 2300000, eazypgId: '7891233020B' },
+    ];
+    const state = { session: null, tab: 'home', properties: [], selected: 'all', picker: false, stats: [], cards: [], rows: [], hasMore: false, query: '', movedOut: false, loading: false, error: '', sheet: null, dueTypes: [], quoteInputs: null, link: '', adding: false, beds: [], tenant: null, targetRows: [] };
 
     function $(id) { return document.getElementById(id); }
     function esc(value) { return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch])); }
@@ -108,20 +120,34 @@
     function jwtPayload(token) {
       try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch { return {}; }
     }
+    function looksLikeJwt(value) {
+      return typeof value === 'string' && value.length > 40 && value.split('.').length === 3;
+    }
     function findToken(node) {
+      if (looksLikeJwt(node)) return node;
       if (!node || typeof node !== 'object') return '';
-      if (typeof node.jwt_token === 'string') return node.jwt_token;
-      if (typeof node.token === 'string' && node.token.includes('.')) return node.token;
+      if (looksLikeJwt(node.jwt_token)) return node.jwt_token;
+      if (looksLikeJwt(node.access_token)) return node.access_token;
+      if (looksLikeJwt(node.token)) return node.token;
       for (const value of Object.values(node)) { const found = findToken(value); if (found) return found; }
       return '';
     }
+    function apiRoot() {
+      if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') return 'http://127.0.0.1:3000/api/rentok';
+      return API;
+    }
     async function api(path, options = {}) {
-      const headers = { Accept: 'application/json, text/plain, */*', 'x-fingerprint': fingerprint(), 'x-platform-name': 'web', 'x-url-path': 'saleshub.rentok.com' };
+      const headers = { Accept: 'application/json, text/plain, */*', 'x-rentok-app': 'saleshub' };
+      if (options.auth !== false) {
+        headers['x-fingerprint'] = fingerprint();
+        if (options.platform !== false) headers['x-platform-name'] = 'web';
+        if (options.urlPath !== false) headers['x-url-path'] = 'saleshub.rentok.com';
+      }
       if (state.session?.token) headers.Authorization = 'Bearer ' + state.session.token;
       let body;
       if (options.form) body = options.form;
       else if (options.json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(options.json); }
-      const res = await fetch(API + '/' + path, { method: body ? 'POST' : 'GET', headers, body });
+      const res = await fetch(apiRoot() + '/' + path, { method: body ? 'POST' : 'GET', headers, body });
       const data = await res.json().catch(() => ({ status: res.status, message: 'Could not reach Sales Hub.' }));
       const status = data.status ?? res.status;
       if ((status === 401 || status === 403) && state.session) { signOut('Session expired. Sign in again.'); throw new Error('Session expired.'); }
@@ -232,7 +258,7 @@
       try {
         const pgId = state.session.pgId;
         const props = await api('property/fetchAllPropertiesForWeb', { json: { pg_id: pgId } });
-        state.properties = ((props.data || {}).properties || []).map((item) => ({ id: item.id, pgNumber: num(item.pg_number), name: item.pg_name || 'Property' })).filter((item) => item.id && item.pgNumber);
+        state.properties = ((props.data || {}).properties || []).map((item) => ({ id: item.id, pgNumber: num(item.pg_number), name: item.pg_name || 'Property', eazypgId: item.eazypg_id || '' })).filter((item) => item.id && item.pgNumber);
         await loadTab(true);
       } catch (e) { state.error = e.message; }
       state.loading = false; render();
@@ -251,6 +277,30 @@
         const header = blocks.find((block) => block.type === 'header_stats');
         state.stats = ((header && header.block_data && header.block_data.stats) || []).map((stat) => ({ title: stat.title, value: stat.value, action: (stat.cta || {}).action || '' }));
         state.cards = (((dash.data || {}).properties) || []).filter((item) => numbers.includes(num(item.pg_number))).map((item) => ({ name: item.pg_name, tenants: num(item.tenant_count), rooms: num(item.room_count), vacant: num(item.vacant_beds), dues: num(item.total_dues), month: num(item.total_income_this_month) }));
+        return;
+      }
+      if (state.tab === 'target') {
+        const start = '2026-10-01';
+        const end = '2026-10-31';
+        const rows = [];
+        for (const member of TARGETS) {
+          const property = state.properties.find((item) => item.eazypgId === member.eazypgId);
+          if (!property) { rows.push({ name: member.name, target: member.target, collection: 0, payments: 0, missing: true }); continue; }
+          let offset = 0; let payments = 0; let collection = 0;
+          for (let pageNo = 0; pageNo < 40; pageNo += 1) {
+            const data = await api('v1/collections/list/filters?property_id=' + property.id, { json: { limit: 100, offset, pg_number_filter: [property.pgNumber], filter_codes: [], payment_mode: [], due_types: [], received_by: [], start_date: start, end_date: end, collection_due_start_date: '', collection_due_end_date: '', tenant_types: [] } });
+            const list = ((data.data || {}).payments) || [];
+            list.forEach((row) => {
+              const received = text(row.received_on).slice(0, 10);
+              if (received < start || received > end) return;
+              payments += 1; collection += num(row.total_amount);
+            });
+            if (list.length < 100) break;
+            offset += 100;
+          }
+          rows.push({ name: member.name, target: member.target, collection, payments, missing: false });
+        }
+        state.targetRows = rows;
         return;
       }
       const offset = replace ? 0 : state.rows.length;
@@ -332,23 +382,24 @@
           if (!/^\d{10}$/.test(state.phone)) { state.error = 'Enter a 10-digit phone number.'; render(); return; }
           try {
             if (!state.otpSent) {
-              await api('property/sendLoginOtp', { json: { phone: state.phone } });
+              await api('property/sendLoginOtp', { json: { phone: state.phone }, auth: false });
               state.otpSent = true;
               render();
               return;
             }
             state.otp = ($('otp') ? $('otp').value : '').replace(/\D/g, '').slice(0, 6);
             if (!state.otp) { state.error = 'Enter the OTP.'; render(); return; }
-            const result = await api('property/verifyLoginOtp', { json: { phone: state.phone, otp: state.otp } });
-            const token = findToken(result);
-            if (!token) throw new Error('Login succeeded but no token was returned.');
+            const result = await api('property/verifyLoginOtp', { json: { phone: state.phone, otp: state.otp }, platform: false });
+            const token = findToken(result.data && result.data.jwt_token) || findToken(result);
+            if (!token) throw new Error((result && result.message && !/success/i.test(result.message) ? result.message + '. ' : '') + 'Login succeeded but no token was returned. Open http://localhost:3000/saleshub on this computer and sign in there.');
             const payload = jwtPayload(token);
-            saveSession({ token, phone: state.phone, pgId: payload.pg_id || '', partnerName: payload.partnerName || '' });
+            const team = (result.data && result.data.team_data) || {};
+            saveSession({ token, phone: state.phone, pgId: payload.pg_id || team.pg_id || '', partnerName: payload.partnerName || team.team_name || '' });
             boot();
           } catch (e) { state.error = e.message; render(); }
         };
         const resend = $('resend');
-        if (resend) resend.onclick = async () => { state.error = ''; try { await api('property/sendLoginOtp', { json: { phone: state.phone } }); } catch (e) { state.error = e.message; render(); } };
+        if (resend) resend.onclick = async () => { state.error = ''; try { await api('property/sendLoginOtp', { json: { phone: state.phone }, auth: false }); } catch (e) { state.error = e.message; render(); } };
         return;
       }
       const currentName = state.selected === 'all' ? 'All properties' : ((state.properties.find((p) => p.id === state.selected) || {}).name || 'Property');
@@ -356,12 +407,18 @@
       const switcher = '<div class="switch"><button type="button" class="switch-btn" id="switch"><span>' + esc(currentName) + '</span><span>' + (state.picker ? '▴' : '▾') + '</span></button>' + (state.picker ? '<div class="switch-menu">' + options + '</div>' : '') + '</div>';
       let main = '';
       if (state.tab === 'home') {
-        main = '<div class="stats">' + state.stats.map((stat) => '<button class="item stat" data-go="' + esc(stat.action) + '"><span class="muted">' + esc(stat.title) + '</span><strong>' + esc(stat.value) + '</strong></button>').join('') + '</div><h2 style="margin-top:14px">Properties</h2><div class="list">' + state.cards.map((card) => '<article class="item"><strong>' + esc(card.name) + '</strong><div class="meta"><span>' + card.tenants + ' tenants</span><span>' + card.vacant + ' vacant</span><span>Dues ' + esc(money(card.dues)) + '</span><span>Month ' + esc(money(card.month)) + '</span></div></article>').join('') + '</div>';
+        main = '<div class="actions"><button class="btn primary" id="add-home">Add tenant</button><button class="btn ghost" id="target-home">October target</button></div><div class="stats">' + state.stats.map((stat) => '<button class="item stat" data-go="' + esc(stat.action) + '"><span class="muted">' + esc(stat.title) + '</span><strong>' + esc(stat.value) + '</strong></button>').join('') + '</div><h2 style="margin-top:14px">Properties</h2><div class="list">' + state.cards.map((card) => '<article class="item"><strong>' + esc(card.name) + '</strong><div class="meta"><span>' + card.tenants + ' tenants</span><span>' + card.vacant + ' vacant</span><span>Dues ' + esc(money(card.dues)) + '</span><span>Month ' + esc(money(card.month)) + '</span></div></article>').join('') + '</div>';
+      } else if (state.tab === 'target') {
+        const rows = state.targetRows || [];
+        const totals = rows.reduce((sum, row) => ({ target: sum.target + row.target, collection: sum.collection + row.collection, payments: sum.payments + row.payments }), { target: 0, collection: 0, payments: 0 });
+        const meter = (collection, target) => { const rate = target > 0 ? (collection / target) * 100 : 0; return '<div class="meter"><span style="width:' + Math.min(100, rate).toFixed(1) + '%"></span></div><strong>' + rate.toFixed(1) + '%</strong>'; };
+        const card = (row) => '<article class="item"><div class="row"><strong>' + esc(row.name) + '</strong><span>' + esc(money(row.collection)) + '</span></div>' + (row.missing ? '<p class="muted">This property is not in the current login.</p>' : meter(row.collection, row.target)) + '<div class="meta"><span>Target ' + esc(money(row.target)) + '</span><span>' + row.payments + ' payments</span><span>Left ' + esc(money(Math.max(0, row.target - row.collection))) + '</span></div></article>';
+        main = '<div class="row"><h2>October 2026 team target</h2><button class="btn ghost" id="refresh-target">Refresh</button></div><p class="muted">Received collections for the October team target.</p>' + (rows.length ? card({ name: 'Team', collection: totals.collection, target: totals.target, payments: totals.payments }) : '') + '<div class="list">' + rows.map(card).join('') + '</div>';
       } else {
         const rows = visibleRows();
         main = '<input id="q" placeholder="Search" value="' + esc(state.query) + '">' + (state.tab === 'people' ? '<div class="actions"><button class="btn ' + (!state.movedOut ? 'primary' : 'ghost') + '" id="living">Living</button><button class="btn ' + (state.movedOut ? 'primary' : 'ghost') + '" id="old">Moved out</button>' + (!state.movedOut ? '<button class="btn primary" id="add-tenant">Add tenant</button>' : '') + '</div>' : '') + (state.tab === 'paid' ? '<p class="muted">' + esc(monthRange().label) + ' collections</p>' : '') + '<div class="list">' + rows.map(itemHtml).join('') + '</div>' + (state.hasMore ? '<button class="btn ghost full" id="more" style="margin-top:8px">Load more</button>' : '');
       }
-      root.innerHTML = '<div class="topbar">' + switcher + '<div class="row"><div><div class="brand">Rent<span>Ok</span></div><div class="muted">' + esc(state.session.partnerName || 'Sales Hub') + '</div></div><button class="btn ghost" id="out">Sign out</button></div></div>' + (state.error ? '<div class="err">' + esc(state.error) + '</div>' : '') + (state.loading ? '<p class="muted">Loading…</p>' : '') + main + '<nav class="tab">' + ['home:Home','people:People','rooms:Rooms','dues:Dues','paid:Paid'].map((pair) => { const [id, label] = pair.split(':'); return '<button class="' + (state.tab === id ? 'on' : '') + '" data-tab="' + id + '">' + label + '</button>'; }).join('') + '</nav>' + sheetHtml() + addSheetHtml();
+      root.innerHTML = '<div class="topbar">' + switcher + '<div class="row"><div><div class="brand">Rent<span>Ok</span></div><div class="muted">' + esc(state.session.partnerName || 'Sales Hub') + '</div></div><button class="btn ghost" id="out">Sign out</button></div></div>' + (state.error ? '<div class="err">' + esc(state.error) + '</div>' : '') + (state.loading ? '<p class="muted">Loading…</p>' : '') + main + '<nav class="tab">' + ['home:Home','people:People','rooms:Rooms','dues:Dues','paid:Paid','target:Target'].map((pair) => { const [id, label] = pair.split(':'); return '<button class="' + (state.tab === id ? 'on' : '') + '" data-tab="' + id + '">' + label + '</button>'; }).join('') + '</nav>' + sheetHtml() + addSheetHtml();
       $('out').onclick = () => signOut();
       $('switch').onclick = () => { state.picker = !state.picker; render(); };
       root.querySelectorAll('[data-pg]').forEach((button) => button.onclick = async () => { state.selected = button.dataset.pg; state.picker = false; state.rows = []; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); });
@@ -372,7 +429,11 @@
       const living = $('living'); if (living) living.onclick = async () => { state.movedOut = false; state.rows = []; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); };
       const old = $('old'); if (old) old.onclick = async () => { state.movedOut = true; state.rows = []; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); };
       const more = $('more'); if (more) more.onclick = async () => { try { await loadTab(false); render(); } catch (e) { state.error = e.message; render(); } };
-      const addBtn = $('add-tenant'); if (addBtn) addBtn.onclick = () => { state.sheet = null; state.adding = true; state.tenantError = ''; state.tenant = blankTenant(); state.beds = []; render(); const property = state.properties.find((item) => item.id === state.tenant.propertyId); if (property) loadBeds(property).then(() => render()).catch((e) => { state.tenantError = e.message; render(); }); };
+      const openAdd = () => { state.sheet = null; state.adding = true; state.tenantError = ''; state.tenant = blankTenant(); state.beds = []; render(); const property = state.properties.find((item) => item.id === state.tenant.propertyId); if (property) loadBeds(property).then(() => render()).catch((e) => { state.tenantError = e.message; render(); }); };
+      const addBtn = $('add-tenant'); if (addBtn) addBtn.onclick = openAdd;
+      const addHome = $('add-home'); if (addHome) addHome.onclick = openAdd;
+      const targetHome = $('target-home'); if (targetHome) targetHome.onclick = () => { state.tab = 'target'; state.loading = true; render(); loadTab(true).then(() => { state.loading = false; render(); }).catch((e) => { state.error = e.message; state.loading = false; render(); }); };
+      const refreshTarget = $('refresh-target'); if (refreshTarget) refreshTarget.onclick = () => { state.loading = true; render(); loadTab(true).then(() => { state.loading = false; render(); }).catch((e) => { state.error = e.message; state.loading = false; render(); }); };
       bindSheet();
       bindAdd();
     }
