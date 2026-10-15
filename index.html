@@ -132,9 +132,10 @@
       for (const value of Object.values(node)) { const found = findToken(value); if (found) return found; }
       return '';
     }
+    const PROXY = 'https://pcs-exception-encounter-charm.trycloudflare.com';
     function apiRoot() {
       if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') return 'http://127.0.0.1:3000/api/rentok';
-      return API;
+      return PROXY;
     }
     async function api(path, options = {}) {
       const headers = { Accept: 'application/json, text/plain, */*', 'x-rentok-app': 'saleshub' };
