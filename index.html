@@ -64,7 +64,7 @@
     .market-top p, .blotter-kicker, .blotter-target, .blotter-facts dt { margin:0; color:var(--muted); font-size:.68rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
     .market h2 { margin:0; color:var(--ink); font-size:1.15rem; letter-spacing:-.03em; }
     .market-refresh { border:0; background:transparent; color:var(--ink); min-height:40px; padding:6px 10px; font-weight:650; }
-    .blotter-last { margin:2px 0 0; font-size:1.45rem; letter-spacing:-.05em; font-variant-numeric:tabular-nums; line-height:1; }
+    .blotter-last { margin:2px 0 0; font-size:1.85rem; letter-spacing:-.05em; font-variant-numeric:tabular-nums; line-height:1; }
     .blotter-delta { display:flex; align-items:baseline; gap:8px; margin:7px 0 0; font-weight:650; font-variant-numeric:tabular-nums; }
     .blotter-delta span { color:var(--muted); font-family:"Avenir Next","Segoe UI",sans-serif; font-size:.75rem; font-weight:550; }
     .up { color:var(--up); } .down { color:var(--down); }
@@ -73,20 +73,20 @@
     .ruler i { position:absolute; top:0; width:1px; height:10px; background:var(--down); }
     .blotter-facts { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:6px 0 0; padding-top:6px; border-top:1px solid var(--rule); }
     .blotter-facts dd { margin:2px 0 0; font-variant-numeric:tabular-nums; }
-    .quote-book { flex:1; display:flex; flex-direction:column; margin-top:8px; }
-    .quote-row { flex:1; display:grid; grid-template-columns:1fr auto; align-content:center; gap:1px 8px; min-height:0; padding:2px 0; border-top:1px solid var(--rule); }
+    .quote-book { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:7px; align-content:stretch; min-height:0; margin-top:8px; }
+    .quote-row { display:grid; grid-template-columns:1fr auto; align-content:center; gap:1px 6px; min-height:0; padding:7px 8px; border:1px solid var(--rule); border-radius:10px; background:#fff; }
     .quote-row strong { font-size:1.02rem; font-weight:650; }
     .quote-row em, .quote-row .px, .quote-row .of { font-style:normal; font-variant-numeric:tabular-nums; }
     .quote-row em { justify-self:end; font-size:.95rem; font-weight:650; }
-    .quote-row .px { font-size:1.05rem; font-weight:650; border-radius:4px; }
-    .quote-row .of { justify-self:end; color:var(--muted); font-size:.78rem; font-weight:550; }
+    .quote-row .px { grid-column:1 / -1; font-size:1.02rem; font-weight:650; border-radius:4px; }
+    .quote-row .of { grid-column:1 / -1; justify-self:start; color:var(--muted); font-size:.72rem; font-weight:550; }
     @keyframes blink-green { 0%, 49% { color:#0c6b45; } 50%, 100% { color:#3ddea0; } }
     @keyframes blink-red { 0%, 49% { color:#a32020; } 50%, 100% { color:#ff7a7a; } }
-    .quote-row.up em, .quote-row.up .px, .blotter-delta.up { color:var(--up); animation:blink-green 1.8s steps(1) infinite; }
-    .quote-row.down em, .quote-row.down .px, .blotter-delta.down { color:var(--down); animation:blink-red 1.8s steps(1) infinite; }
+    .quote-row.up em, .quote-row.up .px, .blotter-delta .up { color:var(--up); animation:blink-green 1.8s steps(1) infinite; }
+    .quote-row.down em, .quote-row.down .px, .blotter-delta .down { color:var(--down); animation:blink-red 1.8s steps(1) infinite; }
     .blotter-last { border-radius:4px; }
     @media (prefers-reduced-motion: reduce) {
-      .quote-row.up em, .quote-row.up .px, .quote-row.down em, .quote-row.down .px, .blotter-delta.up, .blotter-delta.down { animation:none; }
+      .quote-row.up em, .quote-row.up .px, .quote-row.down em, .quote-row.down .px, .blotter-delta .up, .blotter-delta .down { animation:none; }
     }
     .market-wait { margin:0; color:var(--muted); }
     .sheet { position:fixed; inset:0; background:rgba(23,32,51,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
@@ -163,7 +163,7 @@
         const tone = rowRate + 0.05 >= pace ? 'up' : 'down';
         return '<div class="quote-row ' + tone + '" data-name="' + esc(row.name) + '" data-amount="' + row.collection + '" data-tone="' + tone + '"><strong>' + esc(row.name) + '</strong><em>' + (tone === 'up' ? '▲' : '▼') + ' ' + rowRate.toFixed(1) + '%</em><span class="px">' + esc(money(row.collection)) + '</span><span class="of">target ' + esc(money(row.target)) + '</span></div>';
       }).join('') + '</div>';
-      const quote = rows.length ? '<div class="blotter"><p class="blotter-kicker">Last collected</p><p class="blotter-last" data-amount="' + totals.collection + '">' + esc(money(totals.collection)) + '</p><p class="blotter-delta ' + (up ? 'up' : 'down') + '">' + (up ? '▲' : '▼') + ' ' + rate.toFixed(1) + '%<span>' + (gap >= 0 ? '+' : '') + gap.toFixed(1) + ' pts vs ' + pace.toFixed(1) + '% pace</span></p><p class="blotter-target">Against ' + esc(money(totals.target)) + '</p>' + ruler(rate) + '<dl class="blotter-facts"><div><dt>Left</dt><dd>' + esc(compactInr(left)) + '</dd></div><div><dt>Per day</dt><dd>' + esc(compactInr(Math.round(left / days))) + '</dd></div><div><dt>Volume</dt><dd>' + totals.payments + '</dd></div><div><dt>Days</dt><dd>' + days + '</dd></div></dl>' + book + '</div>' : '<p class="market-wait">Loading quotes…</p>';
+      const quote = rows.length ? '<div class="blotter"><p class="blotter-kicker">Target</p><p class="blotter-last" data-amount="' + totals.target + '">' + esc(money(totals.target)) + '</p><p class="blotter-delta"><span class="' + (up ? 'up' : 'down') + '" data-amount="' + totals.collection + '">' + esc(money(totals.collection)) + '</span><span class="' + (up ? 'up' : 'down') + '">' + (up ? '▲' : '▼') + ' ' + rate.toFixed(1) + '%</span><span>' + (gap >= 0 ? '+' : '') + gap.toFixed(1) + ' pts vs ' + pace.toFixed(1) + '% pace</span></p>' + ruler(rate) + '<dl class="blotter-facts"><div><dt>Left</dt><dd>' + esc(compactInr(left)) + '</dd></div><div><dt>Per day</dt><dd>' + esc(compactInr(Math.round(left / days))) + '</dd></div><div><dt>Volume</dt><dd>' + totals.payments + '</dd></div><div><dt>Days</dt><dd>' + days + '</dd></div></dl>' + book + '</div>' : '<p class="market-wait">Loading quotes…</p>';
       return '<section class="market"><div class="market-top"><div><p>October index</p><h2>Team target</h2></div><button type="button" class="market-refresh" id="refresh-target">Refresh</button></div>' + quote + '</section>';
     }
     function digits(value) { return text(value).replace(/\D/g, '').slice(-10); }
