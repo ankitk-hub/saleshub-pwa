@@ -62,7 +62,7 @@
     .market-top p, .blotter-kicker, .blotter-target, .blotter-facts dt { margin:0; color:var(--muted); font-size:.68rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
     .market h2 { margin:0; color:var(--ink); font-size:1.15rem; letter-spacing:-.03em; }
     .market-refresh { border:0; background:transparent; color:var(--ink); min-height:40px; padding:6px 10px; font-weight:650; }
-    .blotter-last { margin:2px 0 0; font-size:2.35rem; letter-spacing:-.05em; font-variant-numeric:tabular-nums; line-height:1; }
+    .blotter-last { margin:2px 0 0; font-size:1.7rem; letter-spacing:-.05em; font-variant-numeric:tabular-nums; line-height:1; }
     .blotter-delta { display:flex; align-items:baseline; gap:8px; margin:7px 0 0; font-weight:650; font-variant-numeric:tabular-nums; }
     .blotter-delta span { color:var(--muted); font-family:"Avenir Next","Segoe UI",sans-serif; font-size:.75rem; font-weight:550; }
     .up { color:var(--up); } .down { color:var(--down); }
@@ -71,12 +71,11 @@
     .ruler i { position:absolute; top:0; width:1px; height:10px; background:var(--down); }
     .blotter-facts { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:12px 0 0; padding-top:10px; border-top:1px solid var(--rule); }
     .blotter-facts dd { margin:2px 0 0; font-variant-numeric:tabular-nums; }
-    .blotter-book { list-style:none; margin:12px 0 0; padding:0; }
-    .blotter-book li { padding:11px 0; border-top:1px solid var(--rule); }
-    .book-top { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
-    .book-top em { font-style:normal; font-weight:650; font-variant-numeric:tabular-nums; }
-    .book-meta { display:flex; justify-content:space-between; gap:8px; margin-top:6px; color:var(--muted); font-size:.75rem; }
-    .book-meta span:first-child { color:var(--ink); font-variant-numeric:tabular-nums; }
+    .target-widget { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; margin-top:10px; }
+    .target-name { display:grid; grid-template-columns:1fr auto; gap:0 6px; align-items:baseline; min-height:32px; }
+    .target-name strong { font-size:.82rem; font-weight:650; }
+    .target-name em { font-style:normal; font-size:.72rem; font-weight:650; font-variant-numeric:tabular-nums; }
+    .target-name span { grid-column:1 / -1; color:var(--muted); font-size:.72rem; font-variant-numeric:tabular-nums; }
     .market-wait { margin:0; color:var(--muted); }
     .sheet { position:fixed; inset:0; background:rgba(23,32,51,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
     .sheet .panel { width:min(480px,100%); max-height:92dvh; overflow:auto; background:#fff; border-radius:18px 18px 0 0; padding:14px 14px calc(14px + env(safe-area-inset-bottom)); display:grid; gap:8px; }
@@ -106,7 +105,7 @@
       { name: 'Sandeep', target: 500000, eazypgId: '7891233020W' },
       { name: 'Pankaj', target: 2300000, eazypgId: '7891233020B' },
     ];
-    const state = { session: null, tab: 'home', properties: [], selected: 'all', picker: false, stats: [], cards: [], rows: [], hasMore: false, query: '', movedOut: false, loading: false, error: '', sheet: null, dueTypes: [], quoteInputs: null, link: '', adding: false, beds: [], tenant: null, targetRows: [] };
+    const state = { session: null, tab: 'home', properties: [], selected: 'all', picker: false, stats: [], cards: [], rows: [], hasMore: false, query: '', peopleView: 'living', loading: false, error: '', sheet: null, dueTypes: [], quoteInputs: null, link: '', adding: false, beds: [], tenant: null, targetRows: [] };
 
     function $(id) { return document.getElementById(id); }
     function esc(value) { return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch])); }
@@ -126,11 +125,11 @@
       const up = rate + 0.05 >= pace;
       const left = Math.max(0, totals.target - totals.collection);
       const ruler = (value) => '<div class="ruler" aria-hidden="true"><span class="fill" style="width:' + Math.min(100, Math.max(0, value)).toFixed(1) + '%"></span><i style="left:' + Math.min(100, pace).toFixed(1) + '%"></i></div>';
-      const book = '<ol class="blotter-book">' + ranked.map((row) => {
+      const book = '<div class="target-widget">' + ranked.map((row) => {
         const rowRate = rateOf(row.collection, row.target);
         const tone = rowRate + 0.05 >= pace ? 'up' : 'down';
-        return '<li><div class="book-top"><strong>' + esc(row.name) + '</strong><em class="' + tone + '">' + (tone === 'up' ? '▲' : '▼') + ' ' + rowRate.toFixed(1) + '%</em></div>' + ruler(rowRate) + '<div class="book-meta"><span>' + esc(money(row.collection)) + '</span><span>of ' + esc(compactInr(row.target)) + ' · ' + row.payments + '</span></div></li>';
-      }).join('') + '</ol>';
+        return '<div class="target-name"><strong>' + esc(row.name) + '</strong><em class="' + tone + '">' + (tone === 'up' ? '▲' : '▼') + ' ' + rowRate.toFixed(0) + '%</em><span>' + esc(compactInr(row.collection)) + ' of ' + esc(compactInr(row.target)) + '</span></div>';
+      }).join('') + '</div>';
       const quote = rows.length ? '<div class="blotter"><p class="blotter-kicker">Last collected</p><p class="blotter-last">' + esc(money(totals.collection)) + '</p><p class="blotter-delta ' + (up ? 'up' : 'down') + '">' + (up ? '▲' : '▼') + ' ' + rate.toFixed(1) + '%<span>' + (gap >= 0 ? '+' : '') + gap.toFixed(1) + ' pts vs ' + pace.toFixed(1) + '% pace</span></p><p class="blotter-target">Against ' + esc(money(totals.target)) + '</p>' + ruler(rate) + '<dl class="blotter-facts"><div><dt>Left</dt><dd>' + esc(compactInr(left)) + '</dd></div><div><dt>Per day</dt><dd>' + esc(compactInr(Math.round(left / days))) + '</dd></div><div><dt>Volume</dt><dd>' + totals.payments + '</dd></div><div><dt>Days</dt><dd>' + days + '</dd></div></dl>' + book + '</div>' : '<p class="market-wait">Loading quotes…</p>';
       return '<section class="market"><div class="market-top"><div><p>October index</p><h2>Team target</h2></div><button type="button" class="market-refresh" id="refresh-target">Refresh</button></div>' + quote + '</section>';
     }
@@ -322,6 +321,38 @@
       } catch (e) { state.error = e.message; }
       state.loading = false; render();
     }
+    function parseDate(value) {
+      const raw = text(value);
+      const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+      if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+      const local = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/.exec(raw);
+      if (local) return new Date(Number(local[3]), Number(local[2]) - 1, Number(local[1]));
+      return null;
+    }
+    function renewalLabel(row) {
+      const checkout = parseDate(row.checkout_date);
+      if (!checkout) return 'Checkout passed';
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const days = Math.round((start - checkout) / 86400000);
+      const when = checkout.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      return days > 0 ? 'Checkout ' + when + ' · ' + days + 'd over' : 'Checkout ' + when;
+    }
+    async function loadRenewals(id, numbers) {
+      const limit = 100;
+      const first = await api('v1/tenants/list/filters?property_id=' + id, { json: { limit, offset: 0, filter_codes: [], order_by: { key: 'room', is_asc: true }, pg_number_filter: numbers } });
+      const pages = [((first.data || {}).tenants) || []];
+      const total = first.pagination && first.pagination.total != null ? first.pagination.total : (first.pagination && first.pagination.has_more ? limit * 8 : pages[0].length);
+      const offsets = [];
+      for (let offset = limit; offset < Math.min(total, 1600); offset += limit) offsets.push(offset);
+      const rest = await Promise.all(offsets.map((offset) => api('v1/tenants/list/filters?property_id=' + id, { json: { limit, offset, filter_codes: [], order_by: { key: 'room', is_asc: true }, pg_number_filter: numbers } })));
+      rest.forEach((page) => pages.push(((page.data || {}).tenants) || []));
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      return pages.flat().filter((row) => {
+        if (text(row.date_of_eviction)) return false;
+        const checkout = parseDate(row.checkout_date);
+        return checkout && checkout < start;
+      }).sort((a, b) => ((parseDate(a.checkout_date) || 0) - (parseDate(b.checkout_date) || 0)));
+    }
     async function loadTab(replace) {
       const numbers = selectedNumbers();
       const id = propertyId();
@@ -369,7 +400,13 @@
       }
       const offset = replace ? 0 : state.rows.length;
       let page;
-      if (state.tab === 'people') page = await api((state.movedOut ? 'v1/old-tenants/list/filters' : 'v1/tenants/list/filters') + '?property_id=' + id, { json: { limit: 20, offset, filter_codes: [], order_by: { key: 'room', is_asc: true }, pg_number_filter: numbers } });
+      if (state.tab === 'people' && state.peopleView === 'renewal') {
+        if (!replace) return;
+        state.rows = await loadRenewals(id, numbers);
+        state.hasMore = false;
+        return;
+      }
+      if (state.tab === 'people') page = await api((state.peopleView === 'out' ? 'v1/old-tenants/list/filters' : 'v1/tenants/list/filters') + '?property_id=' + id, { json: { limit: 20, offset, filter_codes: [], order_by: { key: 'room', is_asc: true }, pg_number_filter: numbers } });
       else if (state.tab === 'rooms') page = await api('v1/rooms/list/filters?property_id=' + id, { json: { limit: 40, offset, pg_number_filter: numbers } });
       else if (state.tab === 'dues') page = await api('v1/dues/list/filters?property_id=' + id, { json: { limit: 20, offset, filter_codes: [], due_types: [], added_by: [], start_date: '', end_date: '', tenant_types: [], pg_number_filter: numbers } });
       else { const range = monthRange(); page = await api('v1/collections/list/filters?property_id=' + id, { json: { limit: 20, offset, pg_number_filter: numbers, filter_codes: [], payment_mode: [], due_types: [], received_by: [], start_date: range.start, end_date: range.end, collection_due_start_date: '', collection_due_end_date: '', tenant_types: [] } }); }
@@ -432,7 +469,8 @@
       if (state.tab === 'people' || state.tab === 'dues') {
         const name = text(row.name || row.tenant_name) || 'Tenant';
         const amount = state.tab === 'dues' ? row.total_amount : row.total_dues;
-        return '<button class="item" data-open="' + index + '"><div class="row"><strong>' + esc(name) + '</strong><span>' + esc(money(amount)) + '</span></div><div class="meta"><span>' + esc(text(row.room || row.tenant_room) || 'No room') + '</span><span>' + esc(row.pg_name) + '</span></div></button>';
+        const extra = state.peopleView === 'renewal' ? renewalLabel(row) : '';
+        return '<button class="item" data-open="' + index + '"><div class="row"><strong>' + esc(name) + '</strong><span>' + esc(money(amount)) + '</span></div><div class="meta"><span>' + esc(text(row.room || row.tenant_room) || 'No room') + '</span><span>' + esc(row.pg_name) + '</span>' + (extra ? '<span>' + esc(extra) + '</span>' : '') + '</div></button>';
       }
       if (state.tab === 'rooms') {
         const beds = (row.bed_array || []).map((bed) => '<span class="bed">' + esc(bed.name) + ' · ' + esc(bed.status_text || 'Bed') + '</span>').join('');
@@ -482,7 +520,8 @@
         main = marketBoard(state.targetRows || []);
       } else {
         const rows = visibleRows();
-        main = '<input id="q" placeholder="Search" value="' + esc(state.query) + '">' + (state.tab === 'people' ? '<div class="actions"><button class="btn ' + (!state.movedOut ? 'primary' : 'ghost') + '" id="living">Living</button><button class="btn ' + (state.movedOut ? 'primary' : 'ghost') + '" id="old">Moved out</button>' + (!state.movedOut ? '<button class="btn primary" id="add-tenant">Add tenant</button>' : '') + '</div>' : '') + (state.tab === 'paid' ? '<p class="muted">' + esc(monthRange().label) + ' collections</p>' : '') + '<div class="list">' + rows.map(itemHtml).join('') + '</div>' + (state.hasMore ? '<button class="btn ghost full" id="more" style="margin-top:8px">Load more</button>' : '');
+        const empty = !rows.length ? '<p class="muted">' + (state.tab === 'people' && state.peopleView === 'renewal' && !state.query ? 'No checkout date has passed.' : 'Nothing matches.') + '</p>' : rows.map(itemHtml).join('');
+        main = '<input id="q" placeholder="Search" value="' + esc(state.query) + '">' + (state.tab === 'people' ? '<div class="actions"><button class="btn ' + (state.peopleView === 'living' ? 'primary' : 'ghost') + '" id="living">Living</button><button class="btn ' + (state.peopleView === 'renewal' ? 'primary' : 'ghost') + '" id="renewal">Renewal</button><button class="btn ' + (state.peopleView === 'out' ? 'primary' : 'ghost') + '" id="old">Moved out</button>' + (state.peopleView === 'living' ? '<button class="btn primary" id="add-tenant">Add tenant</button>' : '') + '</div>' : '') + (state.tab === 'paid' ? '<p class="muted">' + esc(monthRange().label) + ' collections</p>' : '') + '<div class="list">' + empty + '</div>' + (state.hasMore ? '<button class="btn ghost full" id="more" style="margin-top:8px">Load more</button>' : '');
       }
       root.innerHTML = '<div class="topbar">' + switcher + '<div class="row"><div><div class="brand">Rent<span>Ok</span></div><div class="muted">' + esc(state.session.partnerName || 'Sales Hub') + '</div></div><button class="btn ghost" id="out">Sign out</button></div></div>' + (state.error ? '<div class="err">' + esc(state.error) + '</div>' : '') + (state.loading ? '<p class="muted">Loading…</p>' : '') + main + '<nav class="tab">' + ['home:Home','people:People','rooms:Rooms','dues:Dues','paid:Paid','target:Target'].map((pair) => { const [id, label] = pair.split(':'); return '<button class="' + (state.tab === id ? 'on' : '') + '" data-tab="' + id + '">' + label + '</button>'; }).join('') + '</nav>' + sheetHtml() + addSheetHtml();
       $('out').onclick = () => signOut();
@@ -492,8 +531,10 @@
       root.querySelectorAll('[data-go]').forEach((button) => button.onclick = () => { const action = button.dataset.go; state.tab = action.includes('collection') ? 'paid' : action.includes('dues') ? 'dues' : action.includes('rooms') ? 'rooms' : 'people'; state.rows = []; render(); loadTab(true).then(render).catch((e) => { state.error = e.message; render(); }); });
       root.querySelectorAll('[data-open]').forEach((button) => button.onclick = () => openTenant(visibleRows()[Number(button.dataset.open)]));
       const q = $('q'); if (q) q.oninput = () => { state.query = q.value; const list = root.querySelector('.list'); if (list) list.innerHTML = visibleRows().map(itemHtml).join(''); root.querySelectorAll('[data-open]').forEach((button) => button.onclick = () => openTenant(visibleRows()[Number(button.dataset.open)])); };
-      const living = $('living'); if (living) living.onclick = async () => { state.movedOut = false; state.rows = []; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); };
-      const old = $('old'); if (old) old.onclick = async () => { state.movedOut = true; state.rows = []; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); };
+      const setPeople = async (view) => { state.peopleView = view; state.rows = []; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); };
+      const living = $('living'); if (living) living.onclick = () => setPeople('living');
+      const renewal = $('renewal'); if (renewal) renewal.onclick = () => setPeople('renewal');
+      const old = $('old'); if (old) old.onclick = () => setPeople('out');
       const more = $('more'); if (more) more.onclick = async () => { try { await loadTab(false); render(); } catch (e) { state.error = e.message; render(); } };
       const openAdd = () => { state.sheet = null; state.adding = true; state.tenantError = ''; state.tenant = blankTenant(); state.beds = []; render(); const property = state.properties.find((item) => item.id === state.tenant.propertyId); if (property) loadBeds(property).then(() => paintBeds()).catch((e) => { state.tenantError = e.message; const box = $('tenant-error'); if (box) box.textContent = e.message; else render(); }); };
       const addBtn = $('add-tenant'); if (addBtn) addBtn.onclick = openAdd;
