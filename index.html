@@ -80,15 +80,13 @@
     .quote-row em { justify-self:end; font-size:.95rem; font-weight:650; }
     .quote-row .px { font-size:1.05rem; font-weight:650; border-radius:4px; }
     .quote-row .of { justify-self:end; color:var(--muted); font-size:.78rem; font-weight:550; }
-    .quote-row.up em, .quote-row.up .px { color:var(--up); }
-    .quote-row.down em, .quote-row.down .px { color:var(--down); }
+    @keyframes blink-green { 0%, 49% { color:#0c6b45; } 50%, 100% { color:#3ddea0; } }
+    @keyframes blink-red { 0%, 49% { color:#a32020; } 50%, 100% { color:#ff7a7a; } }
+    .quote-row.up em, .quote-row.up .px, .blotter-delta.up { color:var(--up); animation:blink-green .8s steps(1) infinite; }
+    .quote-row.down em, .quote-row.down .px, .blotter-delta.down { color:var(--down); animation:blink-red .8s steps(1) infinite; }
     .blotter-last { border-radius:4px; }
-    @keyframes tick-up { 0%, 42% { background:#c8f5dd; } 100% { background:transparent; } }
-    @keyframes tick-down { 0%, 42% { background:#ffd4d4; } 100% { background:transparent; } }
-    .quote-row.tick-up .px, .blotter-last.tick-up { animation:tick-up .95s ease-out; }
-    .quote-row.tick-down .px, .blotter-last.tick-down { animation:tick-down .95s ease-out; }
     @media (prefers-reduced-motion: reduce) {
-      .quote-row.tick-up .px, .quote-row.tick-down .px, .blotter-last.tick-up, .blotter-last.tick-down { animation:none; }
+      .quote-row.up em, .quote-row.up .px, .quote-row.down em, .quote-row.down .px, .blotter-delta.up, .blotter-delta.down { animation:none; }
     }
     .market-wait { margin:0; color:var(--muted); }
     .sheet { position:fixed; inset:0; background:rgba(23,32,51,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
