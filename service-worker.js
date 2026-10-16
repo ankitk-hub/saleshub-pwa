@@ -1,4 +1,4 @@
-const CACHE_NAME = 'saleshub-v9';
+const CACHE_NAME = 'saleshub-v10';
 const APP_SHELL = [
   './',
   './index.html',
