@@ -64,12 +64,18 @@
     .market-top p, .blotter-kicker, .blotter-target, .blotter-facts dt { margin:0; color:var(--muted); font-size:.68rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
     .market h2 { margin:0; color:var(--ink); font-size:1.15rem; letter-spacing:-.03em; }
     .market-refresh { border:0; background:transparent; color:var(--ink); min-height:40px; padding:6px 10px; font-weight:650; }
-    .blotter-last { margin:2px 0 0; font-size:1.85rem; letter-spacing:-.05em; font-variant-numeric:tabular-nums; line-height:1; }
+    .price-pair { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:2px; }
+    .price-up, .price-down { border-radius:12px; padding:6px 8px 7px; }
+    .price-up { background:linear-gradient(160deg,#d9fbe8,#b6f3d0); }
+    .price-down { background:linear-gradient(160deg,#ffe1e1,#ffc4c4); }
+    .price-up .blotter-kicker { color:#0c6b45; }
+    .price-down .blotter-kicker { color:#a32020; }
+    .blotter-last { margin:2px 0 0; font-size:1.28rem; font-weight:700; letter-spacing:-.04em; font-variant-numeric:tabular-nums; line-height:1; }
     .blotter-delta { display:flex; align-items:baseline; gap:8px; margin:7px 0 0; font-weight:650; font-variant-numeric:tabular-nums; }
     .blotter-delta span { color:var(--muted); font-family:"Avenir Next","Segoe UI",sans-serif; font-size:.75rem; font-weight:550; }
     .up { color:var(--up); } .down { color:var(--down); }
-    .ruler { position:relative; height:10px; margin-top:10px; background:rgba(16,32,51,.06); }
-    .ruler .fill { display:block; height:2px; margin-top:4px; background:var(--ink); }
+    .ruler { position:relative; height:10px; margin-top:8px; border-radius:99px; background:#ffc9c9; overflow:hidden; }
+    .ruler .fill { display:block; height:10px; margin-top:0; border-radius:99px; background:linear-gradient(90deg,#0c6b45,#3ddea0); }
     .ruler i { position:absolute; top:0; width:1px; height:10px; background:var(--down); }
     .blotter-facts { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:6px 0 0; padding-top:6px; border-top:1px solid var(--rule); }
     .blotter-facts dd { margin:2px 0 0; font-variant-numeric:tabular-nums; }
@@ -82,11 +88,11 @@
     .quote-row .of { grid-column:1 / -1; justify-self:start; color:var(--muted); font-size:.72rem; font-weight:550; }
     @keyframes blink-green { 0%, 49% { color:#0c6b45; } 50%, 100% { color:#3ddea0; } }
     @keyframes blink-red { 0%, 49% { color:#a32020; } 50%, 100% { color:#ff7a7a; } }
-    .quote-row.up em, .quote-row.up .px, .blotter-delta .up { color:var(--up); animation:blink-green 1.8s steps(1) infinite; }
-    .quote-row.down em, .quote-row.down .px, .blotter-delta .down { color:var(--down); animation:blink-red 1.8s steps(1) infinite; }
+    .quote-row.up em, .quote-row.up .px, .blotter-delta .up, .blotter-last.up { color:var(--up); animation:blink-green 1.8s steps(1) infinite; }
+    .quote-row.down em, .quote-row.down .px, .blotter-delta .down, .blotter-last.down { color:var(--down); animation:blink-red 1.8s steps(1) infinite; }
     .blotter-last { border-radius:4px; }
     @media (prefers-reduced-motion: reduce) {
-      .quote-row.up em, .quote-row.up .px, .quote-row.down em, .quote-row.down .px, .blotter-delta .up, .blotter-delta .down { animation:none; }
+      .quote-row.up em, .quote-row.up .px, .quote-row.down em, .quote-row.down .px, .blotter-delta .up, .blotter-delta .down, .blotter-last.up, .blotter-last.down { animation:none; }
     }
     .market-wait { margin:0; color:var(--muted); }
     .sheet { position:fixed; inset:0; background:rgba(23,32,51,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
@@ -138,7 +144,7 @@
         const price = row.querySelector('.px');
         if (price) price.style.animationDelay = (index * 70) + 'ms';
       });
-      const last = document.querySelector('.blotter-last');
+      const last = document.querySelector('.blotter-last.up');
       if (!last) return;
       const total = Number(last.dataset.amount);
       const beforeTotal = state.quoteMemory.__total;
@@ -163,7 +169,7 @@
         const tone = rowRate + 0.05 >= pace ? 'up' : 'down';
         return '<div class="quote-row ' + tone + '" data-name="' + esc(row.name) + '" data-amount="' + row.collection + '" data-tone="' + tone + '"><strong>' + esc(row.name) + '</strong><em>' + (tone === 'up' ? '▲' : '▼') + ' ' + rowRate.toFixed(1) + '%</em><span class="px">' + esc(money(row.collection)) + '</span><span class="of">target ' + esc(money(row.target)) + '</span></div>';
       }).join('') + '</div>';
-      const quote = rows.length ? '<div class="blotter"><p class="blotter-kicker">Target</p><p class="blotter-last" data-amount="' + totals.target + '">' + esc(money(totals.target)) + '</p><p class="blotter-delta"><span class="' + (up ? 'up' : 'down') + '" data-amount="' + totals.collection + '">' + esc(money(totals.collection)) + '</span><span class="' + (up ? 'up' : 'down') + '">' + (up ? '▲' : '▼') + ' ' + rate.toFixed(1) + '%</span><span>' + (gap >= 0 ? '+' : '') + gap.toFixed(1) + ' pts vs ' + pace.toFixed(1) + '% pace</span></p>' + ruler(rate) + '<dl class="blotter-facts"><div><dt>Left</dt><dd>' + esc(compactInr(left)) + '</dd></div><div><dt>Per day</dt><dd>' + esc(compactInr(Math.round(left / days))) + '</dd></div><div><dt>Volume</dt><dd>' + totals.payments + '</dd></div><div><dt>Days</dt><dd>' + days + '</dd></div></dl>' + book + '</div>' : '<p class="market-wait">Loading quotes…</p>';
+      const quote = rows.length ? '<div class="blotter"><div class="price-pair"><div class="price-up"><p class="blotter-kicker">Collected ▲</p><p class="blotter-last up" data-amount="' + totals.collection + '">' + esc(money(totals.collection)) + '</p></div><div class="price-down"><p class="blotter-kicker">Target ▼</p><p class="blotter-last down">' + esc(money(totals.target)) + '</p></div></div><p class="blotter-delta"><span class="' + (up ? 'up' : 'down') + '">' + (up ? '▲' : '▼') + ' ' + rate.toFixed(1) + '%</span><span>' + (gap >= 0 ? '+' : '') + gap.toFixed(1) + ' pts vs ' + pace.toFixed(1) + '% pace</span></p>' + ruler(rate) + '<dl class="blotter-facts"><div><dt>Left</dt><dd>' + esc(compactInr(left)) + '</dd></div><div><dt>Per day</dt><dd>' + esc(compactInr(Math.round(left / days))) + '</dd></div><div><dt>Volume</dt><dd>' + totals.payments + '</dd></div><div><dt>Days</dt><dd>' + days + '</dd></div></dl>' + book + '</div>' : '<p class="market-wait">Loading quotes…</p>';
       return '<section class="market"><div class="market-top"><div><p>October index</p><h2>Team target</h2></div><button type="button" class="market-refresh" id="refresh-target">Refresh</button></div>' + quote + '</section>';
     }
     function digits(value) { return text(value).replace(/\D/g, '').slice(-10); }
