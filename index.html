@@ -57,13 +57,27 @@
     .meta { display:flex; flex-wrap:wrap; gap:6px 10px; color:var(--muted); font-size:.78rem; margin-top:4px; }
     .tab { position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:min(480px,100%); display:grid; grid-template-columns:repeat(6,1fr); gap:4px; padding:6px 6px calc(6px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.96); border-top:1px solid var(--line); }
     .tab button { border-radius:12px; padding:10px 2px; font-size:.68rem; }
-    .meter { height:8px; border-radius:999px; background:#e6ebf5; overflow:hidden; margin-top:6px; }
-    .meter span { display:block; height:100%; background:var(--blue); }
-    .analytics, .tgrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
-    .tgrid .meta { display:grid; gap:2px; }
-    .hero, .analytics .stat:last-child { grid-column:1 / -1; }
-    .hero strong { display:block; font-size:1.6rem; letter-spacing:-.04em; }
-    .stat strong { display:block; margin-top:2px; }
+    .market { margin:0 -14px; padding:14px 14px 18px; background:#131722; color:#d1d4dc; display:grid; gap:12px; }
+    .market-top, .market-kicker, .market-name, .market-sub, .market-change { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .market-top p, .market-kicker, .market-quote p, .market-sub, .market-tape span { margin:0; color:#787b86; font-size:.72rem; letter-spacing:.04em; text-transform:uppercase; }
+    .market h2 { margin:0; color:#fff; font-size:1.15rem; }
+    .market-refresh { border:1px solid #2a2e39; background:#1e222d; color:#d1d4dc; border-radius:8px; padding:7px 10px; font-weight:700; }
+    .market-quote strong { display:block; margin-top:2px; color:#fff; font-size:2.15rem; letter-spacing:-.045em; font-variant-numeric:tabular-nums; line-height:1; }
+    .market-change { justify-content:flex-start; margin-top:7px; font-weight:800; font-variant-numeric:tabular-nums; text-transform:none; letter-spacing:0; font-size:.86rem; }
+    .up { color:#089981; } .down { color:#f23645; }
+    .market-chart { width:100%; height:auto; background:#1e222d; border-radius:12px; display:block; }
+    .market-tape { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:8px 0; border-top:1px solid #2a2e39; border-bottom:1px solid #2a2e39; }
+    .market-tape strong { display:block; margin-top:2px; color:#fff; font-size:.86rem; font-variant-numeric:tabular-nums; }
+    .market-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .market-tile { background:#1e222d; border-radius:12px; padding:10px; display:grid; gap:4px; }
+    .market-name strong { color:#fff; font-size:.84rem; }
+    .market-name em { font-style:normal; font-weight:800; font-size:.78rem; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .market-px { color:#fff; font-size:1.02rem; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+    .market-sub { text-transform:none; letter-spacing:0; }
+    .market-bar { height:3px; border-radius:999px; background:#2a2e39; overflow:hidden; }
+    .market-bar span { display:block; height:100%; }
+    .market-bar .up { background:#089981; } .market-bar .down { background:#f23645; }
+    .market-wait { margin:0; color:#787b86; }
     .sheet { position:fixed; inset:0; background:rgba(23,32,51,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
     .sheet .panel { width:min(480px,100%); max-height:92dvh; overflow:auto; background:#fff; border-radius:18px 18px 0 0; padding:14px 14px calc(14px + env(safe-area-inset-bottom)); display:grid; gap:8px; }
     .facts { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0; }
@@ -99,6 +113,37 @@
     function text(value) { return value == null ? '' : String(value).trim(); }
     function num(value) { const n = Number(value); return Number.isFinite(n) ? n : 0; }
     function money(value) { if (typeof value === 'string' && value.includes('₹')) return value; const n = Number(String(value ?? '').replace(/,/g, '')); return Number.isFinite(n) ? inr.format(n) : '—'; }
+    function compactInr(value) { const abs = Math.abs(value); const sign = value < 0 ? '-' : ''; if (abs >= 10000000) return sign + '₹' + (abs / 10000000).toFixed(2) + 'Cr'; if (abs >= 100000) return sign + '₹' + (abs / 100000).toFixed(2) + 'L'; return money(value); }
+    function marketBoard(rows) {
+      const ranked = rows.slice().sort((a, b) => (b.target ? b.collection / b.target : 0) - (a.target ? a.collection / a.target : 0));
+      const totals = rows.reduce((sum, row) => ({ target: sum.target + row.target, collection: sum.collection + row.collection, payments: sum.payments + row.payments }), { target: 0, collection: 0, payments: 0 });
+      const rateOf = (collection, target) => target > 0 ? (collection / target) * 100 : 0;
+      const end = new Date(2026, 9, 31); const today = new Date(); today.setHours(0, 0, 0, 0);
+      const days = Math.max(1, Math.round((end - today) / 86400000) + 1);
+      const pace = today >= end ? 100 : (today.getFullYear() === 2026 && today.getMonth() === 9 ? (today.getDate() / 31) * 100 : 0);
+      const rate = rateOf(totals.collection, totals.target);
+      const gap = rate - pace;
+      const up = rate + 0.05 >= pace;
+      const yFor = (value) => 104 - (Math.min(100, Math.max(0, value)) / 100) * 96;
+      const width = 360; const gapX = 8; const inset = 4;
+      const barW = ranked.length ? (width - inset * 2 - gapX * Math.max(0, ranked.length - 1)) / ranked.length : 0;
+      const bars = ranked.map((row, index) => {
+        const rowRate = rateOf(row.collection, row.target);
+        const x = inset + index * (barW + gapX);
+        const y = yFor(rowRate);
+        const tone = rowRate + 0.05 >= pace ? '#089981' : '#f23645';
+        return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(2, 104 - y).toFixed(1) + '" rx="4" fill="' + tone + '"></rect><text x="' + (x + barW / 2).toFixed(1) + '" y="126" text-anchor="middle" fill="#787b86" font-size="10">' + esc(row.name.split(' ')[0].slice(0, 3).toUpperCase()) + '</text>';
+      }).join('');
+      const chart = '<svg class="market-chart" viewBox="0 0 360 132" role="img" aria-label="Each person against the month pace">' + [0, 50, 100].map((mark) => '<line x1="0" x2="360" y1="' + yFor(mark) + '" y2="' + yFor(mark) + '" stroke="#2a2e39"></line>').join('') + '<line x1="0" x2="360" y1="' + yFor(pace) + '" y2="' + yFor(pace) + '" stroke="#787b86" stroke-dasharray="3 3"></line><text x="354" y="' + Math.max(12, yFor(pace) - 4) + '" text-anchor="end" fill="#787b86" font-size="9">PACE</text>' + bars + '</svg>';
+      const tape = '<div class="market-tape"><div><span>Left</span><strong>' + esc(compactInr(Math.max(0, totals.target - totals.collection))) + '</strong></div><div><span>Per day</span><strong>' + esc(compactInr(Math.round(Math.max(0, totals.target - totals.collection) / days))) + '</strong></div><div><span>Volume</span><strong>' + totals.payments + '</strong></div><div><span>Days</span><strong>' + days + '</strong></div></div>';
+      const tiles = '<div class="market-grid">' + ranked.map((row) => {
+        const rowRate = rateOf(row.collection, row.target);
+        const tone = rowRate + 0.05 >= pace ? 'up' : 'down';
+        return '<article class="market-tile"><div class="market-name"><strong>' + esc(row.name) + '</strong><em class="' + tone + '">' + (tone === 'up' ? '▲' : '▼') + ' ' + rowRate.toFixed(1) + '%</em></div><div class="market-px">' + esc(money(row.collection)) + '</div><div class="market-sub"><span>of ' + esc(compactInr(row.target)) + '</span><span>' + row.payments + ' trades</span></div><div class="market-bar"><span class="' + tone + '" style="width:' + Math.min(100, rowRate).toFixed(1) + '%"></span></div></article>';
+      }).join('') + '</div>';
+      const quote = rows.length ? '<div class="market-quote"><div class="market-kicker"><span>Last</span><span class="' + (up ? 'up' : 'down') + '">' + (up ? 'Ahead of pace' : 'Behind pace') + '</span></div><strong>' + esc(money(totals.collection)) + '</strong><div class="market-change ' + (up ? 'up' : 'down') + '"><span>' + (up ? '▲' : '▼') + ' ' + rate.toFixed(1) + '%</span><span>' + (gap >= 0 ? '+' : '') + gap.toFixed(1) + ' pts vs ' + pace.toFixed(1) + '% pace</span></div><p>Target ' + esc(money(totals.target)) + '</p></div>' + chart + tape + tiles : '<p class="market-wait">Loading quotes…</p>';
+      return '<section class="market"><div class="market-top"><div><p>October index</p><h2>Team target</h2></div><button type="button" class="market-refresh" id="refresh-target">Refresh</button></div>' + quote + '</section>';
+    }
     function digits(value) { return text(value).replace(/\D/g, '').slice(-10); }
     function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
     function monthRange() {
@@ -438,18 +483,7 @@
       if (state.tab === 'home') {
         main = '<div class="actions"><button class="btn primary" id="add-home">Add tenant</button><button class="btn ghost" id="target-home">October target</button></div><div class="stats">' + state.stats.map((stat) => '<button class="item stat" data-go="' + esc(stat.action) + '"><span class="muted">' + esc(stat.title) + '</span><strong>' + esc(stat.value) + '</strong></button>').join('') + '</div><h2 style="margin-top:14px">Properties</h2><div class="list">' + state.cards.map((card) => '<article class="item"><strong>' + esc(card.name) + '</strong><div class="meta"><span>' + card.tenants + ' tenants</span><span>' + card.vacant + ' vacant</span><span>Dues ' + esc(money(card.dues)) + '</span><span>Month ' + esc(money(card.month)) + '</span></div></article>').join('') + '</div>';
       } else if (state.tab === 'target') {
-        const rows = (state.targetRows || []).slice().sort((a, b) => (b.target ? b.collection / b.target : 0) - (a.target ? a.collection / a.target : 0));
-        const totals = (state.targetRows || []).reduce((sum, row) => ({ target: sum.target + row.target, collection: sum.collection + row.collection, payments: sum.payments + row.payments }), { target: 0, collection: 0, payments: 0 });
-        const rate = (collection, target) => target > 0 ? (collection / target) * 100 : 0;
-        const end = new Date(2026, 9, 31); const today = new Date(); today.setHours(0, 0, 0, 0);
-        const days = Math.max(1, Math.round((end - today) / 86400000) + 1);
-        const left = Math.max(0, totals.target - totals.collection);
-        const meter = (collection, target) => '<div class="meter"><span style="width:' + Math.min(100, rate(collection, target)).toFixed(1) + '%"></span></div>';
-        const stat = (label, value) => '<article class="item stat"><span class="muted">' + label + '</span><strong>' + value + '</strong></article>';
-        const leader = rows.find((row) => !row.missing);
-        const analytics = rows.length ? '<div class="analytics"><article class="item hero"><span class="muted">Team achievement</span><strong>' + rate(totals.collection, totals.target).toFixed(1) + '%</strong>' + meter(totals.collection, totals.target) + '</article>' + stat('Collected', esc(money(totals.collection))) + stat('Target', esc(money(totals.target))) + stat('Left', esc(money(left))) + stat('Needed / day', esc(money(Math.round(left / days)))) + stat('Payments', String(totals.payments)) + stat('Days left', String(days)) + (leader ? stat('Leading', esc(leader.name)) : '') + '</div>' : '';
-        const grid = '<div class="tgrid">' + rows.map((row, index) => '<article class="item"><div class="row"><strong>' + (index + 1) + '. ' + esc(row.name) + '</strong><span>' + rate(row.collection, row.target).toFixed(1) + '%</span></div>' + (row.missing ? '<p class="muted">Not in this login.</p>' : meter(row.collection, row.target)) + '<div class="meta"><span>' + esc(money(row.collection)) + '</span><span>of ' + esc(money(row.target)) + '</span><span>Left ' + esc(money(Math.max(0, row.target - row.collection))) + '</span><span>' + row.payments + ' pays</span></div></article>').join('') + '</div>';
-        main = '<div class="row"><h2>October 2026 team target</h2><button class="btn ghost" id="refresh-target">Refresh</button></div><p class="muted">Received collections for the October team target.</p>' + analytics + grid;
+        main = marketBoard(state.targetRows || []);
       } else {
         const rows = visibleRows();
         main = '<input id="q" placeholder="Search" value="' + esc(state.query) + '">' + (state.tab === 'people' ? '<div class="actions"><button class="btn ' + (!state.movedOut ? 'primary' : 'ghost') + '" id="living">Living</button><button class="btn ' + (state.movedOut ? 'primary' : 'ghost') + '" id="old">Moved out</button>' + (!state.movedOut ? '<button class="btn primary" id="add-tenant">Add tenant</button>' : '') + '</div>' : '') + (state.tab === 'paid' ? '<p class="muted">' + esc(monthRange().label) + ' collections</p>' : '') + '<div class="list">' + rows.map(itemHtml).join('') + '</div>' + (state.hasMore ? '<button class="btn ghost full" id="more" style="margin-top:8px">Load more</button>' : '');
