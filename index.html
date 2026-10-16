@@ -132,7 +132,7 @@
       for (const value of Object.values(node)) { const found = findToken(value); if (found) return found; }
       return '';
     }
-    const PROXY = 'https://listprice-disabled-impaired-contained.trycloudflare.com';
+    const PROXY = 'https://a4923f2662b7e3.lhr.life';
     function apiRoot() {
       if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') return 'http://127.0.0.1:3000/api/rentok';
       return PROXY;
@@ -148,7 +148,12 @@
       let body;
       if (options.form) body = options.form;
       else if (options.json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(options.json); }
-      const res = await fetch(apiRoot() + '/' + path, { method: body ? 'POST' : 'GET', headers, body });
+      let res;
+      try {
+        res = await fetch(apiRoot() + '/' + path, { method: body ? 'POST' : 'GET', headers, body, cache: 'no-store' });
+      } catch (e) {
+        throw new Error('The phone could not reach Sales Hub. Open this page again in the browser, not from an old home-screen icon.');
+      }
       const data = await res.json().catch(() => ({ status: res.status, message: 'Could not reach Sales Hub.' }));
       const status = data.status ?? res.status;
       if ((status === 401 || status === 403) && state.session) { signOut('Session expired. Sign in again.'); throw new Error('Session expired.'); }
