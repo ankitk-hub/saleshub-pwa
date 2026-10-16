@@ -59,6 +59,11 @@
     .tab button { border-radius:12px; padding:10px 2px; font-size:.68rem; }
     .meter { height:8px; border-radius:999px; background:#e6ebf5; overflow:hidden; margin-top:6px; }
     .meter span { display:block; height:100%; background:var(--blue); }
+    .analytics, .tgrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+    .tgrid .meta { display:grid; gap:2px; }
+    .hero, .analytics .stat:last-child { grid-column:1 / -1; }
+    .hero strong { display:block; font-size:1.6rem; letter-spacing:-.04em; }
+    .stat strong { display:block; margin-top:2px; }
     .sheet { position:fixed; inset:0; background:rgba(23,32,51,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
     .sheet .panel { width:min(480px,100%); max-height:92dvh; overflow:auto; background:#fff; border-radius:18px 18px 0 0; padding:14px 14px calc(14px + env(safe-area-inset-bottom)); display:grid; gap:8px; }
     .facts { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0; }
@@ -299,12 +304,18 @@
         return;
       }
       if (state.tab === 'target') {
+        if (state.targetRows.length && !state.forceTarget) return;
+        state.forceTarget = false;
         const start = '2026-10-01';
         const end = '2026-10-31';
-        const rows = [];
-        for (const member of TARGETS) {
+        state.targetRows = await Promise.all(TARGETS.map(async (member) => {
           const property = state.properties.find((item) => item.eazypgId === member.eazypgId);
-          if (!property) { rows.push({ name: member.name, target: member.target, collection: 0, payments: 0, missing: true }); continue; }
+          if (!property) return { name: member.name, target: member.target, collection: 0, payments: 0, missing: true };
+          const summary = await api('v1/collections/list/summary?property_id=' + property.id, { json: { filter_codes: [], payment_mode: [], due_types: [], received_by: [], start_date: start, end_date: end, collection_due_start_date: '', collection_due_end_date: '', tenant_types: [], pg_number_filter: [property.pgNumber] } }).catch(() => null);
+          const body = (summary && summary.data) || {};
+          if (body.total_amount != null || body.total_payments != null) {
+            return { name: member.name, target: member.target, collection: num(body.total_amount), payments: num(body.total_payments != null ? body.total_payments : body.payment_count), missing: false };
+          }
           let offset = 0; let payments = 0; let collection = 0;
           for (let pageNo = 0; pageNo < 40; pageNo += 1) {
             const data = await api('v1/collections/list/filters?property_id=' + property.id, { json: { limit: 100, offset, pg_number_filter: [property.pgNumber], filter_codes: [], payment_mode: [], due_types: [], received_by: [], start_date: start, end_date: end, collection_due_start_date: '', collection_due_end_date: '', tenant_types: [] } });
@@ -317,9 +328,8 @@
             if (list.length < 100) break;
             offset += 100;
           }
-          rows.push({ name: member.name, target: member.target, collection, payments, missing: false });
-        }
-        state.targetRows = rows;
+          return { name: member.name, target: member.target, collection, payments, missing: false };
+        }));
         return;
       }
       const offset = replace ? 0 : state.rows.length;
@@ -428,11 +438,18 @@
       if (state.tab === 'home') {
         main = '<div class="actions"><button class="btn primary" id="add-home">Add tenant</button><button class="btn ghost" id="target-home">October target</button></div><div class="stats">' + state.stats.map((stat) => '<button class="item stat" data-go="' + esc(stat.action) + '"><span class="muted">' + esc(stat.title) + '</span><strong>' + esc(stat.value) + '</strong></button>').join('') + '</div><h2 style="margin-top:14px">Properties</h2><div class="list">' + state.cards.map((card) => '<article class="item"><strong>' + esc(card.name) + '</strong><div class="meta"><span>' + card.tenants + ' tenants</span><span>' + card.vacant + ' vacant</span><span>Dues ' + esc(money(card.dues)) + '</span><span>Month ' + esc(money(card.month)) + '</span></div></article>').join('') + '</div>';
       } else if (state.tab === 'target') {
-        const rows = state.targetRows || [];
-        const totals = rows.reduce((sum, row) => ({ target: sum.target + row.target, collection: sum.collection + row.collection, payments: sum.payments + row.payments }), { target: 0, collection: 0, payments: 0 });
-        const meter = (collection, target) => { const rate = target > 0 ? (collection / target) * 100 : 0; return '<div class="meter"><span style="width:' + Math.min(100, rate).toFixed(1) + '%"></span></div><strong>' + rate.toFixed(1) + '%</strong>'; };
-        const card = (row) => '<article class="item"><div class="row"><strong>' + esc(row.name) + '</strong><span>' + esc(money(row.collection)) + '</span></div>' + (row.missing ? '<p class="muted">This property is not in the current login.</p>' : meter(row.collection, row.target)) + '<div class="meta"><span>Target ' + esc(money(row.target)) + '</span><span>' + row.payments + ' payments</span><span>Left ' + esc(money(Math.max(0, row.target - row.collection))) + '</span></div></article>';
-        main = '<div class="row"><h2>October 2026 team target</h2><button class="btn ghost" id="refresh-target">Refresh</button></div><p class="muted">Received collections for the October team target.</p>' + (rows.length ? card({ name: 'Team', collection: totals.collection, target: totals.target, payments: totals.payments }) : '') + '<div class="list">' + rows.map(card).join('') + '</div>';
+        const rows = (state.targetRows || []).slice().sort((a, b) => (b.target ? b.collection / b.target : 0) - (a.target ? a.collection / a.target : 0));
+        const totals = (state.targetRows || []).reduce((sum, row) => ({ target: sum.target + row.target, collection: sum.collection + row.collection, payments: sum.payments + row.payments }), { target: 0, collection: 0, payments: 0 });
+        const rate = (collection, target) => target > 0 ? (collection / target) * 100 : 0;
+        const end = new Date(2026, 9, 31); const today = new Date(); today.setHours(0, 0, 0, 0);
+        const days = Math.max(1, Math.round((end - today) / 86400000) + 1);
+        const left = Math.max(0, totals.target - totals.collection);
+        const meter = (collection, target) => '<div class="meter"><span style="width:' + Math.min(100, rate(collection, target)).toFixed(1) + '%"></span></div>';
+        const stat = (label, value) => '<article class="item stat"><span class="muted">' + label + '</span><strong>' + value + '</strong></article>';
+        const leader = rows.find((row) => !row.missing);
+        const analytics = rows.length ? '<div class="analytics"><article class="item hero"><span class="muted">Team achievement</span><strong>' + rate(totals.collection, totals.target).toFixed(1) + '%</strong>' + meter(totals.collection, totals.target) + '</article>' + stat('Collected', esc(money(totals.collection))) + stat('Target', esc(money(totals.target))) + stat('Left', esc(money(left))) + stat('Needed / day', esc(money(Math.round(left / days)))) + stat('Payments', String(totals.payments)) + stat('Days left', String(days)) + (leader ? stat('Leading', esc(leader.name)) : '') + '</div>' : '';
+        const grid = '<div class="tgrid">' + rows.map((row, index) => '<article class="item"><div class="row"><strong>' + (index + 1) + '. ' + esc(row.name) + '</strong><span>' + rate(row.collection, row.target).toFixed(1) + '%</span></div>' + (row.missing ? '<p class="muted">Not in this login.</p>' : meter(row.collection, row.target)) + '<div class="meta"><span>' + esc(money(row.collection)) + '</span><span>of ' + esc(money(row.target)) + '</span><span>Left ' + esc(money(Math.max(0, row.target - row.collection))) + '</span><span>' + row.payments + ' pays</span></div></article>').join('') + '</div>';
+        main = '<div class="row"><h2>October 2026 team target</h2><button class="btn ghost" id="refresh-target">Refresh</button></div><p class="muted">Received collections for the October team target.</p>' + analytics + grid;
       } else {
         const rows = visibleRows();
         main = '<input id="q" placeholder="Search" value="' + esc(state.query) + '">' + (state.tab === 'people' ? '<div class="actions"><button class="btn ' + (!state.movedOut ? 'primary' : 'ghost') + '" id="living">Living</button><button class="btn ' + (state.movedOut ? 'primary' : 'ghost') + '" id="old">Moved out</button>' + (!state.movedOut ? '<button class="btn primary" id="add-tenant">Add tenant</button>' : '') + '</div>' : '') + (state.tab === 'paid' ? '<p class="muted">' + esc(monthRange().label) + ' collections</p>' : '') + '<div class="list">' + rows.map(itemHtml).join('') + '</div>' + (state.hasMore ? '<button class="btn ghost full" id="more" style="margin-top:8px">Load more</button>' : '');
@@ -452,7 +469,7 @@
       const addBtn = $('add-tenant'); if (addBtn) addBtn.onclick = openAdd;
       const addHome = $('add-home'); if (addHome) addHome.onclick = openAdd;
       const targetHome = $('target-home'); if (targetHome) targetHome.onclick = () => { state.tab = 'target'; state.loading = true; render(); loadTab(true).then(() => { state.loading = false; render(); }).catch((e) => { state.error = e.message; state.loading = false; render(); }); };
-      const refreshTarget = $('refresh-target'); if (refreshTarget) refreshTarget.onclick = () => { state.loading = true; render(); loadTab(true).then(() => { state.loading = false; render(); }).catch((e) => { state.error = e.message; state.loading = false; render(); }); };
+      const refreshTarget = $('refresh-target'); if (refreshTarget) refreshTarget.onclick = () => { state.forceTarget = true; state.loading = true; render(); loadTab(true).then(() => { state.loading = false; render(); }).catch((e) => { state.error = e.message; state.loading = false; render(); }); };
       bindSheet();
       bindAdd();
     }

@@ -2,7 +2,7 @@
   "name": "Sales Hub",
   "short_name": "SalesHub",
   "description": "Sales Hub for managing tenants and dues",
-  "start_url": "./?v=11",
+  "start_url": "./?v=13",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0038FF",
