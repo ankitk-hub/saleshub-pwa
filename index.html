@@ -397,8 +397,14 @@
         const data = await api('dueType/fetchTenantDueTypes', { json: { pg_id: pgId, pg_number: pgNumber, tenant_id: tenantId } });
         state.dueTypes = ((data.data || {}).bill_array || []).filter((item) => item.enabled !== false).map((item) => ({ id: item.firebase_id || item.name, name: item.name, unitCost: num(item.unit_cost || item.amount), gstRate: num(item.gst_percentage) || 0.18 }));
         const gold = state.dueTypes.find((type) => type.name === 'Gold Plan') || state.dueTypes[0];
-        if (gold) { state.quoteInputs.typeId = gold.id; state.quoteInputs.price = gold.unitCost ? String(gold.unitCost) : ''; }
-        render();
+        readQuoteInputs();
+        if (gold) {
+          const typedPrice = text(state.quoteInputs.price);
+          state.quoteInputs.typeId = gold.id;
+          if (!typedPrice && gold.unitCost) state.quoteInputs.price = String(gold.unitCost);
+        }
+        if ($('plan')) paintDueTypes();
+        else render();
       } catch (e) { state.error = e.message; render(); }
     }
     function currentQuote() {
@@ -499,7 +505,7 @@
       const living = $('living'); if (living) living.onclick = async () => { state.movedOut = false; state.rows = []; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); };
       const old = $('old'); if (old) old.onclick = async () => { state.movedOut = true; state.rows = []; state.loading = true; render(); try { await loadTab(true); } catch (e) { state.error = e.message; } state.loading = false; render(); };
       const more = $('more'); if (more) more.onclick = async () => { try { await loadTab(false); render(); } catch (e) { state.error = e.message; render(); } };
-      const openAdd = () => { state.sheet = null; state.adding = true; state.tenantError = ''; state.tenant = blankTenant(); state.beds = []; render(); const property = state.properties.find((item) => item.id === state.tenant.propertyId); if (property) loadBeds(property).then(() => render()).catch((e) => { state.tenantError = e.message; render(); }); };
+      const openAdd = () => { state.sheet = null; state.adding = true; state.tenantError = ''; state.tenant = blankTenant(); state.beds = []; render(); const property = state.properties.find((item) => item.id === state.tenant.propertyId); if (property) loadBeds(property).then(() => paintBeds()).catch((e) => { state.tenantError = e.message; const box = $('tenant-error'); if (box) box.textContent = e.message; else render(); }); };
       const addBtn = $('add-tenant'); if (addBtn) addBtn.onclick = openAdd;
       const addHome = $('add-home'); if (addHome) addHome.onclick = openAdd;
       const targetHome = $('target-home'); if (targetHome) targetHome.onclick = () => { state.tab = 'target'; state.loading = true; render(); loadTab(true).then(() => { state.loading = false; render(); }).catch((e) => { state.error = e.message; state.loading = false; render(); }); };
@@ -507,14 +513,33 @@
       bindSheet();
       bindAdd();
     }
+    function quotePreviewHtml() {
+      const quote = currentQuote();
+      if (!quote) return '<p class="muted">Enter a price, units, and months.</p>';
+      return '<div class="preview"><div>' + quote.totalUnits + ' × ₹' + quote.originalUnitCost + ' × ' + quote.months + ' months</div><div>Through ' + quote.dueEndDate + ' · ' + quote.days + ' days</div><div>Before discount ' + inr.format(quote.originalAmount) + '</div><div>Discount ' + inr.format(Math.round(quote.discountValue)) + ' · GST ' + inr.format(quote.gstAmount) + '</div><strong>' + inr.format(quote.amount) + ' to collect</strong></div>';
+    }
+    function paintQuote() {
+      const box = $('quote-preview');
+      if (box) box.innerHTML = quotePreviewHtml();
+      if (!state.link) { const linkBox = $('quote-link'); if (linkBox) linkBox.innerHTML = ''; }
+    }
+    function paintDueTypes() {
+      const plan = $('plan');
+      if (!plan || !state.quoteInputs) return;
+      const selected = state.quoteInputs.typeId;
+      plan.innerHTML = state.dueTypes.map((type) => '<option value="' + esc(type.id) + '">' + esc(type.name) + (type.unitCost ? ' · ₹' + type.unitCost : '') + '</option>').join('');
+      if (selected) plan.value = selected;
+      const price = $('price');
+      if (price && document.activeElement !== price) price.value = state.quoteInputs.price || '';
+      paintQuote();
+    }
     function sheetHtml() {
       const row = state.sheet; if (!row) return '';
       const phone = digits(row.phone || row.tenant_number);
-      const quote = currentQuote();
       const types = state.dueTypes.map((type) => '<option value="' + esc(type.id) + '"' + (state.quoteInputs && state.quoteInputs.typeId === type.id ? ' selected' : '') + '>' + esc(type.name) + (type.unitCost ? ' · ₹' + type.unitCost : '') + '</option>').join('');
       const input = state.quoteInputs || {};
-      const link = state.link ? '<div class="preview"><a href="' + esc(state.link) + '" target="_blank">' + esc(state.link) + '</a><div class="actions"><button class="btn ghost" id="copy">Copy link</button>' + (state.shareText ? '<a class="btn primary" target="_blank" href="https://wa.me/' + (phone ? '91' + phone : '') + '?text=' + encodeURIComponent(state.shareText) + '">WhatsApp link</a>' : '') + '</div></div>' : '';
-      return '<div class="sheet" id="sheet"><div class="panel"><div class="row"><strong>' + esc(row.name || row.tenant_name || 'Tenant') + '</strong><button class="btn ghost" id="close">Close</button></div><p class="muted">' + esc(text(row.room || row.tenant_room) || 'No room') + ' · ' + esc(row.pg_name) + '</p><div class="actions">' + (phone ? '<a class="btn primary" href="tel:' + phone + '">Call</a><a class="btn ghost" target="_blank" href="https://wa.me/91' + phone + '">WhatsApp</a>' : '') + '</div><h2>Add due</h2><label>Plan<select id="plan">' + types + '</select></label><div class="grid"><label>Unit price<input id="price" inputmode="decimal" value="' + esc(input.price || '') + '"></label><label>Units<input id="units" inputmode="numeric" value="' + esc(input.units || '1') + '"></label><label>Months<input id="months" inputmode="numeric" value="' + esc(input.months || '1') + '"></label><label>Discount / unit<input id="discount" inputmode="decimal" value="' + esc(input.discount || '0') + '"></label></div><label>Starts<input id="start" type="date" value="' + esc(input.start || today()) + '"></label>' + (quote ? '<div class="preview"><div>' + quote.totalUnits + ' × ₹' + quote.originalUnitCost + ' × ' + quote.months + ' months</div><div>Through ' + quote.dueEndDate + ' · ' + quote.days + ' days</div><div>Before discount ' + inr.format(quote.originalAmount) + '</div><div>Discount ' + inr.format(Math.round(quote.discountValue)) + ' · GST ' + inr.format(quote.gstAmount) + '</div><strong>' + inr.format(quote.amount) + ' to collect</strong></div>' : '<p class="muted">Enter a price, units, and months.</p>') + (state.error ? '<div class="err">' + esc(state.error) + '</div>' : '') + '<button class="btn primary full" id="adddue">' + (state.loading ? 'Adding…' : 'Add due and payment link') + '</button>' + link + '</div></div>';
+      const link = '<div id="quote-link">' + (state.link ? '<div class="preview"><a href="' + esc(state.link) + '" target="_blank">' + esc(state.link) + '</a><div class="actions"><button class="btn ghost" id="copy">Copy link</button>' + (state.shareText ? '<a class="btn primary" target="_blank" href="https://wa.me/' + (phone ? '91' + phone : '') + '?text=' + encodeURIComponent(state.shareText) + '">WhatsApp link</a>' : '') + '</div></div>' : '') + '</div>';
+      return '<div class="sheet" id="sheet"><div class="panel"><div class="row"><strong>' + esc(row.name || row.tenant_name || 'Tenant') + '</strong><button class="btn ghost" id="close">Close</button></div><p class="muted">' + esc(text(row.room || row.tenant_room) || 'No room') + ' · ' + esc(row.pg_name) + '</p><div class="actions">' + (phone ? '<a class="btn primary" href="tel:' + phone + '">Call</a><a class="btn ghost" target="_blank" href="https://wa.me/91' + phone + '">WhatsApp</a>' : '') + '</div><h2>Add due</h2><label>Plan<select id="plan">' + types + '</select></label><div class="grid"><label>Unit price<input id="price" inputmode="decimal" value="' + esc(input.price || '') + '"></label><label>Units<input id="units" inputmode="numeric" value="' + esc(input.units || '1') + '"></label><label>Months<input id="months" inputmode="numeric" value="' + esc(input.months || '1') + '"></label><label>Discount / unit<input id="discount" inputmode="decimal" value="' + esc(input.discount || '0') + '"></label></div><label>Starts<input id="start" type="date" value="' + esc(input.start || today()) + '"></label><div id="quote-preview">' + quotePreviewHtml() + '</div>' + (state.error ? '<div class="err">' + esc(state.error) + '</div>' : '') + '<button class="btn primary full" id="adddue">' + (state.loading ? 'Adding…' : 'Add due and payment link') + '</button>' + link + '</div></div>';
     }
     function readQuoteInputs() {
       if (!state.quoteInputs) state.quoteInputs = {};
@@ -530,7 +555,8 @@
       const close = $('close'); if (close) close.onclick = () => { state.sheet = null; state.error = ''; render(); };
       const sheet = $('sheet'); if (sheet) sheet.onclick = (event) => { if (event.target === sheet) { state.sheet = null; render(); } };
       const plan = $('plan'); if (plan) plan.onchange = () => { readQuoteInputs(); const type = state.dueTypes.find((item) => item.id === plan.value); if (type && type.unitCost) state.quoteInputs.price = String(type.unitCost); state.link = ''; render(); };
-      ['price','units','months','discount','start'].forEach((id) => { const el = $(id); if (el) el.oninput = () => { readQuoteInputs(); state.link = ''; const panel = document.querySelector('.panel'); const top = panel ? panel.scrollTop : 0; render(); const next = document.querySelector('.panel'); if (next) next.scrollTop = top; const focus = $(id); if (focus) focus.focus(); }; });
+      ['price','units','months','discount'].forEach((id) => { const el = $(id); if (!el) return; el.onfocus = () => { if (el.value === '0') el.value = ''; else el.select(); }; el.oninput = () => { readQuoteInputs(); state.link = ''; paintQuote(); }; });
+      const start = $('start'); if (start) start.oninput = () => { readQuoteInputs(); state.link = ''; paintQuote(); };
       const add = $('adddue'); if (add) add.onclick = () => { readQuoteInputs(); addDue(); };
       const copy = $('copy'); if (copy) copy.onclick = () => navigator.clipboard.writeText(state.link).then(() => { copy.textContent = 'Copied'; });
     }
@@ -544,8 +570,8 @@
       const depositDue = payload ? payload.opening_balance_array[1] : null;
       const propertyOptions = state.properties.map((item) => '<option value="' + esc(item.id) + '"' + (form.propertyId === item.id ? ' selected' : '') + '>' + esc(item.name) + '</option>').join('');
       const bedOptions = state.beds.map((item) => '<option value="' + esc(item.id) + '"' + (form.bedId === item.id ? ' selected' : '') + '>' + esc(item.label) + '</option>').join('');
-      const preview = payload ? '<div class="preview"><div>Checkout ' + esc(payload.checkout_date) + '</div><div>' + esc(first.description) + ' ' + inr.format(first.amount) + '</div><div class="muted">' + esc(first.otherDescription) + '</div><div>Security deposit ' + inr.format(depositDue.amount) + '</div></div>' : '<p class="muted">' + (state.beds.length ? 'Choose a room.' : 'Loading rooms…') + '</p>';
-      return '<div class="sheet" id="add-sheet"><div class="panel"><div class="row"><h2>Add tenant</h2><button class="btn ghost" id="add-close" type="button">Close</button></div><label>Property<select id="t-property">' + propertyOptions + '</select></label><label>Name<input id="t-name" value="' + esc(form.name) + '" placeholder="Tenant name"></label><label>Phone<input id="t-phone" inputmode="numeric" maxlength="10" value="' + esc(form.phone) + '" placeholder="10-digit mobile"></label><label>Room<select id="t-bed">' + (bedOptions || '<option value="">No rooms</option>') + '</select></label><div class="grid"><label>Monthly rent<input id="t-rent" inputmode="decimal" value="' + esc(form.rent) + '"></label><label>Security deposit<input id="t-deposit" inputmode="decimal" value="' + esc(form.deposit) + '"></label><label>Joining<input id="t-join" type="date" value="' + esc(form.joining) + '"></label><label>Agreement months<input id="t-months" inputmode="numeric" value="' + esc(form.months) + '"></label><label>Notice days<input id="t-notice" inputmode="numeric" value="' + esc(form.notice) + '"></label><label>Lock-in months<input id="t-lockin" inputmode="numeric" value="' + esc(form.lockin) + '"></label></div><label><input id="t-gst" type="checkbox"' + (form.gst ? ' checked' : '') + '> GST on rent</label><label><input id="t-wa" type="checkbox"' + (form.whatsapp ? ' checked' : '') + '> WhatsApp updates</label>' + preview + (state.tenantError ? '<div class="err">' + esc(state.tenantError) + '</div>' : '') + '<button class="btn primary full" id="t-save" type="button">' + (state.savingTenant ? 'Adding…' : 'Add tenant') + '</button></div></div>';
+      const preview = '<div id="tenant-preview">' + (payload ? '<div class="preview"><div>Checkout ' + esc(payload.checkout_date) + '</div><div>' + esc(first.description) + ' ' + inr.format(first.amount) + '</div><div class="muted">' + esc(first.otherDescription) + '</div><div>Security deposit ' + inr.format(depositDue.amount) + '</div></div>' : '<p class="muted">' + (state.beds.length ? 'Choose a room.' : 'Loading rooms…') + '</p>') + '</div>';
+      return '<div class="sheet" id="add-sheet"><div class="panel"><div class="row"><h2>Add tenant</h2><button class="btn ghost" id="add-close" type="button">Close</button></div><label>Property<select id="t-property">' + propertyOptions + '</select></label><label>Name<input id="t-name" value="' + esc(form.name) + '" placeholder="Tenant name"></label><label>Phone<input id="t-phone" inputmode="numeric" maxlength="10" value="' + esc(form.phone) + '" placeholder="10-digit mobile"></label><label>Room<select id="t-bed">' + (bedOptions || '<option value="">No rooms</option>') + '</select></label><div class="grid"><label>Monthly rent<input id="t-rent" inputmode="decimal" value="' + esc(form.rent) + '"></label><label>Security deposit<input id="t-deposit" inputmode="decimal" value="' + esc(form.deposit) + '"></label><label>Joining<input id="t-join" type="date" value="' + esc(form.joining) + '"></label><label>Agreement months<input id="t-months" inputmode="numeric" value="' + esc(form.months) + '"></label><label>Notice days<input id="t-notice" inputmode="numeric" value="' + esc(form.notice) + '"></label><label>Lock-in months<input id="t-lockin" inputmode="numeric" value="' + esc(form.lockin) + '"></label></div><label><input id="t-gst" type="checkbox"' + (form.gst ? ' checked' : '') + '> GST on rent</label><label><input id="t-wa" type="checkbox"' + (form.whatsapp ? ' checked' : '') + '> WhatsApp updates</label>' + preview + '<div class="err" id="tenant-error"' + (state.tenantError ? '' : ' style="display:none"') + '>' + esc(state.tenantError || '') + '</div>' + '<button class="btn primary full" id="t-save" type="button">' + (state.savingTenant ? 'Adding…' : 'Add tenant') + '</button></div></div>';
     }
     function readTenant() {
       if (!state.tenant) return;
@@ -553,20 +579,45 @@
       const gst = $('t-gst'); if (gst) state.tenant.gst = gst.checked;
       const wa = $('t-wa'); if (wa) state.tenant.whatsapp = wa.checked;
     }
+    function tenantPreviewHtml() {
+      if (!state.tenant) return '';
+      const form = state.tenant;
+      const property = state.properties.find((item) => item.id === form.propertyId) || null;
+      const bed = state.beds.find((item) => item.id === form.bedId) || null;
+      const payload = property && bed ? tenantPayload(form, property, bed) : null;
+      const first = payload ? payload.opening_balance_array[0] : null;
+      const depositDue = payload ? payload.opening_balance_array[1] : null;
+      if (!payload) return '<p class="muted">' + (state.beds.length ? 'Choose a room.' : 'Loading rooms…') + '</p>';
+      return '<div class="preview"><div>Checkout ' + esc(payload.checkout_date) + '</div><div>' + esc(first.description) + ' ' + inr.format(first.amount) + '</div><div class="muted">' + esc(first.otherDescription) + '</div><div>Security deposit ' + inr.format(depositDue.amount) + '</div></div>';
+    }
+    function paintTenant() {
+      const box = $('tenant-preview');
+      if (box) box.innerHTML = tenantPreviewHtml();
+    }
+    function paintBeds() {
+      const select = $('t-bed');
+      if (!state.adding || !select) return;
+      const current = state.tenant ? state.tenant.bedId : '';
+      select.innerHTML = state.beds.map((item) => '<option value="' + esc(item.id) + '">' + esc(item.label) + '</option>').join('') || '<option value="">No rooms</option>';
+      if (current && [...select.options].some((option) => option.value === current)) select.value = current;
+      else if (state.tenant) state.tenant.bedId = select.value;
+      paintTenant();
+    }
     function bindAdd() {
       const close = $('add-close'); if (close) close.onclick = () => { state.adding = false; state.tenantError = ''; render(); };
       const sheet = $('add-sheet'); if (sheet) sheet.onclick = (event) => { if (event.target === sheet) { state.adding = false; render(); } };
       const property = $('t-property');
-      if (property) property.onchange = () => { readTenant(); state.beds = []; const next = state.properties.find((item) => item.id === state.tenant.propertyId); render(); if (next) loadBeds(next).then(() => render()).catch((e) => { state.tenantError = e.message; render(); }); };
+      if (property) property.onchange = () => { readTenant(); state.beds = []; state.tenant.bedId = ''; paintBeds(); const next = state.properties.find((item) => item.id === state.tenant.propertyId); if (next) loadBeds(next).then(() => paintBeds()).catch((e) => { state.tenantError = e.message; const box = $('tenant-error'); if (box) box.textContent = e.message; }); };
+      ['t-rent','t-deposit','t-months','t-notice','t-lockin'].forEach((id) => { const el = $(id); if (el) el.onfocus = () => { if (el.value === '0') el.value = ''; else el.select(); }; });
       ['t-name','t-phone','t-rent','t-deposit','t-join','t-months','t-notice','t-lockin','t-bed'].forEach((id) => {
         const el = $(id);
         if (!el) return;
-        const update = () => { readTenant(); const panel = document.querySelector('#add-sheet .panel'); const top = panel ? panel.scrollTop : 0; render(); const next = document.querySelector('#add-sheet .panel'); if (next) next.scrollTop = top; const focus = $(id); if (focus) focus.focus(); };
+        const update = () => { readTenant(); paintTenant(); };
         el.oninput = update;
         el.onchange = update;
       });
-      const gst = $('t-gst'); if (gst) gst.onchange = () => { readTenant(); render(); };
-      const wa = $('t-wa'); if (wa) wa.onchange = () => { readTenant(); render(); };
+      const gst = $('t-gst'); if (gst) gst.onchange = () => { readTenant(); paintTenant(); };
+      const wa = $('t-wa'); if (wa) wa.onchange = () => { readTenant(); paintTenant(); };
       const save = $('t-save');
       if (save) save.onclick = async () => {
         readTenant();
