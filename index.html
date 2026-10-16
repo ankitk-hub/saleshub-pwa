@@ -204,7 +204,7 @@
       for (const value of Object.values(node)) { const found = findToken(value); if (found) return found; }
       return '';
     }
-    const PROXY = 'https://promotional-interact-life-valium.trycloudflare.com';
+    const PROXY = 'https://saleshub-proxy.vercel.app';
     async function apiRoot(force) {
       if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') return 'http://127.0.0.1:3000/api/rentok';
       if (state.proxy && !force) return state.proxy;
@@ -235,7 +235,7 @@
         try {
           res = await fetch(await apiRoot(true) + '/' + path, { method: body ? 'POST' : 'GET', headers, body, cache: 'no-store' });
         } catch (again) {
-          throw new Error('Connection dropped. Stay on Wi-Fi and try again. This computer has to stay awake.');
+          throw new Error('Could not reach Sales Hub. Check your internet and try again.');
         }
       }
       const data = await res.json().catch(() => ({ status: res.status, message: 'Could not reach Sales Hub.' }));
