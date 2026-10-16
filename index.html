@@ -57,35 +57,29 @@
     .meta { display:flex; flex-wrap:wrap; gap:6px 10px; color:var(--muted); font-size:.78rem; margin-top:4px; }
     .tab { position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:min(480px,100%); display:grid; grid-template-columns:repeat(6,1fr); gap:4px; padding:6px 6px calc(6px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.96); border-top:1px solid var(--line); }
     .tab button { border-radius:12px; padding:10px 2px; font-size:.68rem; }
-    .market { --ink:#102033; --paper:#f4f7fb; --rule:rgba(16,32,51,.1); --up:#0c6b45; --down:#a32020; --muted:#5c6b7a; margin:0 -14px; padding:14px 14px 18px; background:var(--paper); color:var(--ink); display:grid; gap:14px; font-family:"Avenir Next","Segoe UI",sans-serif; }
+    .app:has(.market) { height:100dvh; min-height:0; display:flex; flex-direction:column; overflow:hidden; padding-bottom:0; }
+    .market { --ink:#102033; --paper:#f4f7fb; --rule:rgba(16,32,51,.1); --up:#0c6b45; --down:#a32020; --muted:#5c6b7a; margin:0 -14px; padding:14px 14px 12px; background:var(--paper); color:var(--ink); display:flex; flex-direction:column; gap:8px; flex:1; min-height:0; margin-bottom:calc(64px + env(safe-area-inset-bottom)); overflow:hidden; font-family:"Avenir Next","Segoe UI",sans-serif; }
+    .blotter { flex:1; display:flex; flex-direction:column; min-height:0; }
     .market-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .market-top p, .blotter-kicker, .blotter-target, .blotter-facts dt { margin:0; color:var(--muted); font-size:.68rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
     .market h2 { margin:0; color:var(--ink); font-size:1.15rem; letter-spacing:-.03em; }
     .market-refresh { border:0; background:transparent; color:var(--ink); min-height:40px; padding:6px 10px; font-weight:650; }
-    .blotter-last { margin:2px 0 0; font-size:1.7rem; letter-spacing:-.05em; font-variant-numeric:tabular-nums; line-height:1; }
+    .blotter-last { margin:2px 0 0; font-size:1.45rem; letter-spacing:-.05em; font-variant-numeric:tabular-nums; line-height:1; }
     .blotter-delta { display:flex; align-items:baseline; gap:8px; margin:7px 0 0; font-weight:650; font-variant-numeric:tabular-nums; }
     .blotter-delta span { color:var(--muted); font-family:"Avenir Next","Segoe UI",sans-serif; font-size:.75rem; font-weight:550; }
     .up { color:var(--up); } .down { color:var(--down); }
     .ruler { position:relative; height:10px; margin-top:10px; background:rgba(16,32,51,.06); }
     .ruler .fill { display:block; height:2px; margin-top:4px; background:var(--ink); }
     .ruler i { position:absolute; top:0; width:1px; height:10px; background:var(--down); }
-    .blotter-facts { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:12px 0 0; padding-top:10px; border-top:1px solid var(--rule); }
+    .blotter-facts { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:6px 0 0; padding-top:6px; border-top:1px solid var(--rule); }
     .blotter-facts dd { margin:2px 0 0; font-variant-numeric:tabular-nums; }
-    .quote-book { margin-top:10px; }
-    .quote-row { display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:baseline; min-height:26px; padding-top:4px; border-top:1px solid var(--rule); }
-    .quote-row strong { font-size:.84rem; font-weight:650; }
-    .quote-row span, .quote-row em { font-style:normal; font-size:.78rem; font-weight:650; font-variant-numeric:tabular-nums; }
-    .tape { margin-top:14px; }
-    .tape > p { margin:0 0 4px; color:var(--muted); font-size:.68rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
-    .tape-row { display:grid; grid-template-columns:6.4rem 1fr auto; gap:6px; align-items:baseline; padding:4px 0; border-top:1px solid var(--rule); font-size:.75rem; }
-    .tape-row time { color:var(--muted); font-variant-numeric:tabular-nums; }
-    .tape-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .tape-row em { color:var(--up); font-style:normal; font-weight:650; font-variant-numeric:tabular-nums; }
-    .target-widget { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; margin-top:10px; }
-    .target-name { display:grid; grid-template-columns:1fr auto; gap:0 6px; align-items:baseline; min-height:32px; }
-    .target-name strong { font-size:.82rem; font-weight:650; }
-    .target-name em { font-style:normal; font-size:.72rem; font-weight:650; font-variant-numeric:tabular-nums; }
-    .target-name span { grid-column:1 / -1; color:var(--muted); font-size:.72rem; font-variant-numeric:tabular-nums; }
+    .quote-book { flex:1; display:flex; flex-direction:column; margin-top:8px; }
+    .quote-row { flex:1; display:grid; grid-template-columns:1fr auto; align-content:center; gap:1px 8px; min-height:0; padding:2px 0; border-top:1px solid var(--rule); }
+    .quote-row strong { font-size:1.02rem; font-weight:650; }
+    .quote-row em, .quote-row .px, .quote-row .of { font-style:normal; font-variant-numeric:tabular-nums; }
+    .quote-row em { justify-self:end; font-size:.95rem; font-weight:650; }
+    .quote-row .px { font-size:1.05rem; font-weight:650; }
+    .quote-row .of { justify-self:end; color:var(--muted); font-size:.78rem; font-weight:550; }
     .market-wait { margin:0; color:var(--muted); }
     .sheet { position:fixed; inset:0; background:rgba(23,32,51,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
     .sheet .panel { width:min(480px,100%); max-height:92dvh; overflow:auto; background:#fff; border-radius:18px 18px 0 0; padding:14px 14px calc(14px + env(safe-area-inset-bottom)); display:grid; gap:8px; }
@@ -115,7 +109,7 @@
       { name: 'Sandeep', target: 500000, eazypgId: '7891233020W' },
       { name: 'Pankaj', target: 2300000, eazypgId: '7891233020B' },
     ];
-    const state = { session: null, tab: 'home', properties: [], selected: 'all', picker: false, stats: [], cards: [], rows: [], hasMore: false, query: '', peopleView: 'living', loading: false, error: '', sheet: null, dueTypes: [], quoteInputs: null, link: '', adding: false, beds: [], tenant: null, targetRows: [], targetPrints: [] };
+    const state = { session: null, tab: 'home', properties: [], selected: 'all', picker: false, stats: [], cards: [], rows: [], hasMore: false, query: '', peopleView: 'living', loading: false, error: '', sheet: null, dueTypes: [], quoteInputs: null, link: '', adding: false, beds: [], tenant: null, targetRows: [] };
 
     function $(id) { return document.getElementById(id); }
     function esc(value) { return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch])); }
@@ -123,12 +117,7 @@
     function num(value) { const n = Number(value); return Number.isFinite(n) ? n : 0; }
     function money(value) { if (typeof value === 'string' && value.includes('₹')) return value; const n = Number(String(value ?? '').replace(/,/g, '')); return Number.isFinite(n) ? inr.format(n) : '—'; }
     function compactInr(value) { const abs = Math.abs(value); const sign = value < 0 ? '-' : ''; if (abs >= 10000000) return sign + '₹' + (abs / 10000000).toFixed(2) + 'Cr'; if (abs >= 100000) return sign + '₹' + (abs / 100000).toFixed(2) + 'L'; return money(value); }
-    function printWhen(value) {
-      const parsed = new Date(value);
-      if (Number.isNaN(parsed.getTime())) return value || '';
-      return parsed.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
-    }
-    function marketBoard(rows, prints) {
+    function marketBoard(rows) {
       const ranked = rows.slice().sort((a, b) => (b.target ? b.collection / b.target : 0) - (a.target ? a.collection / a.target : 0));
       const totals = rows.reduce((sum, row) => ({ target: sum.target + row.target, collection: sum.collection + row.collection, payments: sum.payments + row.payments }), { target: 0, collection: 0, payments: 0 });
       const rateOf = (collection, target) => target > 0 ? (collection / target) * 100 : 0;
@@ -143,11 +132,9 @@
       const book = '<div class="quote-book">' + ranked.map((row) => {
         const rowRate = rateOf(row.collection, row.target);
         const tone = rowRate + 0.05 >= pace ? 'up' : 'down';
-        return '<div class="quote-row"><strong>' + esc(row.name) + '</strong><span>' + esc(compactInr(row.collection)) + '</span><em class="' + tone + '">' + (tone === 'up' ? '▲' : '▼') + ' ' + rowRate.toFixed(1) + '%</em></div>';
+        return '<div class="quote-row"><strong>' + esc(row.name) + '</strong><em class="' + tone + '">' + (tone === 'up' ? '▲' : '▼') + ' ' + rowRate.toFixed(1) + '%</em><span class="px">' + esc(money(row.collection)) + '</span><span class="of">target ' + esc(money(row.target)) + '</span></div>';
       }).join('') + '</div>';
-      const tapeRows = (prints || []).map((print) => '<div class="tape-row"><time>' + esc(printWhen(print.at)) + '</time><span><strong>' + esc(print.member) + '</strong> ' + esc(print.tenant) + '</span><em>+' + esc(compactInr(print.amount)) + '</em></div>').join('');
-      const tape = '<div class="tape"><p>Collections</p>' + (tapeRows || '<p class="market-wait">No collection yet this month.</p>') + '</div>';
-      const quote = rows.length ? '<div class="blotter"><p class="blotter-kicker">Last collected</p><p class="blotter-last">' + esc(money(totals.collection)) + '</p><p class="blotter-delta ' + (up ? 'up' : 'down') + '">' + (up ? '▲' : '▼') + ' ' + rate.toFixed(1) + '%<span>' + (gap >= 0 ? '+' : '') + gap.toFixed(1) + ' pts vs ' + pace.toFixed(1) + '% pace</span></p><p class="blotter-target">Against ' + esc(money(totals.target)) + '</p>' + ruler(rate) + '<dl class="blotter-facts"><div><dt>Left</dt><dd>' + esc(compactInr(left)) + '</dd></div><div><dt>Per day</dt><dd>' + esc(compactInr(Math.round(left / days))) + '</dd></div><div><dt>Volume</dt><dd>' + totals.payments + '</dd></div><div><dt>Days</dt><dd>' + days + '</dd></div></dl>' + book + tape + '</div>' : '<p class="market-wait">Loading quotes…</p>';
+      const quote = rows.length ? '<div class="blotter"><p class="blotter-kicker">Last collected</p><p class="blotter-last">' + esc(money(totals.collection)) + '</p><p class="blotter-delta ' + (up ? 'up' : 'down') + '">' + (up ? '▲' : '▼') + ' ' + rate.toFixed(1) + '%<span>' + (gap >= 0 ? '+' : '') + gap.toFixed(1) + ' pts vs ' + pace.toFixed(1) + '% pace</span></p><p class="blotter-target">Against ' + esc(money(totals.target)) + '</p>' + ruler(rate) + '<dl class="blotter-facts"><div><dt>Left</dt><dd>' + esc(compactInr(left)) + '</dd></div><div><dt>Per day</dt><dd>' + esc(compactInr(Math.round(left / days))) + '</dd></div><div><dt>Volume</dt><dd>' + totals.payments + '</dd></div><div><dt>Days</dt><dd>' + days + '</dd></div></dl>' + book + '</div>' : '<p class="market-wait">Loading quotes…</p>';
       return '<section class="market"><div class="market-top"><div><p>October index</p><h2>Team target</h2></div><button type="button" class="market-refresh" id="refresh-target">Refresh</button></div>' + quote + '</section>';
     }
     function digits(value) { return text(value).replace(/\D/g, '').slice(-10); }
@@ -370,25 +357,6 @@
         return checkout && checkout < start;
       }).sort((a, b) => ((parseDate(a.checkout_date) || 0) - (parseDate(b.checkout_date) || 0)));
     }
-    async function loadTargetPrints(start, end) {
-      const pages = await Promise.all(TARGETS.map(async (member) => {
-        const property = state.properties.find((item) => item.eazypgId === member.eazypgId);
-        if (!property) return [];
-        const data = await api('v1/collections/list/filters?property_id=' + property.id, { json: { limit: 15, offset: 0, pg_number_filter: [property.pgNumber], filter_codes: [], payment_mode: [], due_types: [], received_by: [], start_date: start, end_date: end, collection_due_start_date: '', collection_due_end_date: '', tenant_types: [] } }).catch(() => null);
-        const list = (((data && data.data) || {}).payments) || [];
-        return list.filter((row) => {
-          const received = text(row.received_on).slice(0, 10);
-          return !/^\d{4}-\d{2}-\d{2}$/.test(received) || (received >= start && received <= end);
-        }).map((row) => ({
-          id: text(row.id) || member.name + text(row.received_on) + text(row.total_amount) + text(row.tenant_name),
-          member: member.name,
-          tenant: text(row.tenant_name) || text(row.name) || 'Collection',
-          amount: num(row.total_amount),
-          at: text(row.received_on),
-        }));
-      }));
-      return pages.flat().sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0) || b.amount - a.amount).slice(0, 24);
-    }
     async function loadTab(replace) {
       const numbers = selectedNumbers();
       const id = propertyId();
@@ -410,8 +378,7 @@
         state.forceTarget = false;
         const start = '2026-10-01';
         const end = '2026-10-31';
-        const [rows, prints] = await Promise.all([
-          Promise.all(TARGETS.map(async (member) => {
+        state.targetRows = await Promise.all(TARGETS.map(async (member) => {
           const property = state.properties.find((item) => item.eazypgId === member.eazypgId);
           if (!property) return { name: member.name, target: member.target, collection: 0, payments: 0, missing: true };
           const summary = await api('v1/collections/list/summary?property_id=' + property.id, { json: { filter_codes: [], payment_mode: [], due_types: [], received_by: [], start_date: start, end_date: end, collection_due_start_date: '', collection_due_end_date: '', tenant_types: [], pg_number_filter: [property.pgNumber] } }).catch(() => null);
@@ -432,11 +399,7 @@
             offset += 100;
           }
           return { name: member.name, target: member.target, collection, payments, missing: false };
-        })),
-          loadTargetPrints(start, end),
-        ]);
-        state.targetRows = rows;
-        state.targetPrints = prints;
+        }));
         return;
       }
       const offset = replace ? 0 : state.rows.length;
@@ -558,7 +521,7 @@
       if (state.tab === 'home') {
         main = '<div class="actions"><button class="btn primary" id="add-home">Add tenant</button><button class="btn ghost" id="target-home">October target</button></div><div class="stats">' + state.stats.map((stat) => '<button class="item stat" data-go="' + esc(stat.action) + '"><span class="muted">' + esc(stat.title) + '</span><strong>' + esc(stat.value) + '</strong></button>').join('') + '</div><h2 style="margin-top:14px">Properties</h2><div class="list">' + state.cards.map((card) => '<article class="item"><strong>' + esc(card.name) + '</strong><div class="meta"><span>' + card.tenants + ' tenants</span><span>' + card.vacant + ' vacant</span><span>Dues ' + esc(money(card.dues)) + '</span><span>Month ' + esc(money(card.month)) + '</span></div></article>').join('') + '</div>';
       } else if (state.tab === 'target') {
-        main = marketBoard(state.targetRows || [], state.targetPrints || []);
+        main = marketBoard(state.targetRows || []);
       } else {
         const rows = visibleRows();
         const empty = !rows.length ? '<p class="muted">' + (state.tab === 'people' && state.peopleView === 'renewal' && !state.query ? 'No checkout date has passed.' : 'Nothing matches.') + '</p>' : rows.map(itemHtml).join('');
@@ -582,9 +545,6 @@
       const addHome = $('add-home'); if (addHome) addHome.onclick = openAdd;
       const targetHome = $('target-home'); if (targetHome) targetHome.onclick = () => { state.tab = 'target'; state.loading = true; render(); loadTab(true).then(() => { state.loading = false; render(); }).catch((e) => { state.error = e.message; state.loading = false; render(); }); };
       const refreshTarget = $('refresh-target'); if (refreshTarget) refreshTarget.onclick = () => { state.forceTarget = true; state.loading = true; render(); loadTab(true).then(() => { state.loading = false; render(); }).catch((e) => { state.error = e.message; state.loading = false; render(); }); };
-      if (state.session && state.tab === 'target') {
-        if (!state.tapeTimer) state.tapeTimer = setInterval(() => { if (state.tab !== 'target' || state.loading) return; state.forceTarget = true; loadTab(true).then(() => render()).catch((e) => { state.error = e.message; render(); }); }, 45000);
-      } else if (state.tapeTimer) { clearInterval(state.tapeTimer); state.tapeTimer = 0; }
       bindSheet();
       bindAdd();
     }

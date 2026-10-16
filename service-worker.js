@@ -1,4 +1,4 @@
-const CACHE_NAME = 'saleshub-v18';
+const CACHE_NAME = 'saleshub-v19';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
